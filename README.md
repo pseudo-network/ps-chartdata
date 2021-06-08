@@ -21,6 +21,3 @@ $ git push origin {branch name}
 # create PR on the github webapp
 # merge PR, CICD only builds and deploys on the master branch
 ```
-# ps-app-ui
-# ps-chartdata
-# ps-chartdata
