@@ -1,17 +1,5 @@
 package model
 
-type History struct {
-	StatusCode   string    `json:"s"`
-	ErrorMessage string    `json:"errmsg,omitempty"`
-	BarTime      []int64   `json:"t"`
-	ClosingPrice []float64 `json:"c"`
-	OpeningPrice []float64 `json:"o"`
-	HighPrice    []float64 `json:"h"`
-	LowPrice     []float64 `json:"l"`
-	Volume       []float64 `json:"v"`
-	NextTime     string    `json:"nextTime,omitempty"`
-}
-
 type DexTrade struct {
 	TimeInterval  TimeInterval `json:"timeInterval"`
 	High          float64      `json:"high"`
@@ -23,11 +11,7 @@ type DexTrade struct {
 	Date          Date         `json:"date"`
 	Trades        int          `json:"trades"`
 	TradeAmount   float64      `json:"tradeAmount"`
-}
-
-type NoHistory struct {
-	StatusCode string `json:"s"`
-	NextTime   string `json:"nextTime"`
+	UnixTimeMS    int64        `json:"unixTimeMS"`
 }
 
 type Date struct {
@@ -41,9 +25,3 @@ type Currency struct {
 type TimeInterval struct {
 	Minute string `json:"minute"`
 }
-
-const (
-	STATUS_OK      = "ok"
-	STATUS_ERROR   = "error"
-	STATUS_NO_DATA = "no_data"
-)

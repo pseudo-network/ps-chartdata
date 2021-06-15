@@ -23,8 +23,5 @@ func main() {
 }
 
 func initPublicRoutes(e *echo.Echo) {
-	e.GET("/config", service.GetConfigHandler)
 	e.GET("/history", service.GetHistoryHandler)
-	e.GET("/search", service.SearchSymbolsHandler)
-	e.GET("/symbols", service.SearchSymbolsHandler)
 }
