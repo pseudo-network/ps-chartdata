@@ -26,7 +26,7 @@ func SearchSymbolsHandler(c echo.Context) error {
 		HasNoVolume:          false,
 		Description:          "Safe Moon Crypto",
 		Type:                 "stock",
-		SupportedResolutions: []string{"5", "240", "D", "5D", "1w", "1m"},
+		SupportedResolutions: []string{"5", "60", "240", "D", "5D", "1w", "1m"},
 	}
 
 	return c.JSON(http.StatusOK, search)

@@ -12,11 +12,11 @@ func GetConfigHandler(c echo.Context) error {
 
 	// todo: revise?
 	config := model.Config{
-		SupportedResolutions:   []string{"5", "240", "D", "5D", "1w", "1m"},
+		SupportedResolutions:   []string{"5", "60", "240", "D", "5D", "1w", "1m"},
 		SupportsGroupRequest:   false,
 		SupportsMarks:          false,
 		SupportsSearch:         true,
-		SupportsTimescaleMarks: true,
+		SupportsTimescaleMarks: false,
 		SupportsTime:           false,
 	}
 

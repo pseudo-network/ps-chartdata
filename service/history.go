@@ -37,9 +37,11 @@ func GetHistoryHandler(c echo.Context) error {
 	toTimeUInt, err := strconv.ParseUint(string(to), 10, 64)
 	toTimeString := time.Unix(int64(toTimeUInt), int64(0)).UTC().Format(time.RFC3339)
 
-	timeInterval := "minute(count: 1440)"
+	timeInterval := "minute(count: 1)"
 	if resolution == "5" {
 		timeInterval = "minute(count: 5)"
+	} else if resolution == "60" {
+		timeInterval = "minute(count: 60)"
 	} else if resolution == "240" {
 		timeInterval = "minute(count: 240)"
 	} else if resolution == "D" {
@@ -60,9 +62,9 @@ func GetHistoryHandler(c echo.Context) error {
 
 	query := `{
 		ethereum(network: bsc) {
-			dexTrades(options: {limit: 200}
+			dexTrades(
 				date: {since: "FROM_TIME" till:"TO_TIME"}
-				exchangeName: {is: "Pancake"} 
+				exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"} 
 				baseCurrency: {is: "0x8076c74c5e3f5852037f31ff0093eeb8c8add8d3"}
 				quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
 				)
@@ -171,11 +173,8 @@ func GetHistoryHandler(c echo.Context) error {
 			c.Logger().Error(err.Error())
 		}
 		history.ClosingPrice = append(history.ClosingPrice, closePrice)
-		if trade.High < 0.00001 {
-			history.HighPrice = append(history.HighPrice, trade.High)
-		} else {
-			history.HighPrice = append(history.HighPrice, 0.000000000000004)
-		}
+		history.HighPrice = append(history.HighPrice, trade.High)
+
 		history.LowPrice = append(history.LowPrice, trade.Low)
 
 		history.Volume = append(history.Volume, trade.TradeAmount)
