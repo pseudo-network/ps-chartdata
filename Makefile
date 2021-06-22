@@ -1,31 +1,36 @@
 service := ps-chartdata
 version := 0.0.1
-docker_reg := 060455244818.dkr.ecr.us-east-2.amazonaws.com
-docker-image := $(docker_reg)/$(service):$(version)
+gcloud_proj_id := sylvan-bonbon-317613
+cluster := ps-dev
+gcr-image := gcr.io/${gcloud_proj_id}/${service}:${version}
 root := $(abspath $(shell pwd))
 port := 80
 
 list:
 	@grep '^[^#[:space:]].*:' Makefile | grep -v ':=' | grep -v '^\.' | sed 's/:.*//g' | sed 's/://g' | sort
 
+bootstrap:
+	pip install bumpversion
+	npm install
+
 init:
-	go mod tidy
+	npm install
 
 dev:
-	go run main.go
+	npm start
 
 docker-build:
-	docker build -t $(docker-image) .
+	docker build -t $(gcr-image) .
 
 docker-dev:
 	make docker-build
 	make docker-run
 
 docker-push:
-	docker push $(docker-image)
+	docker push $(gcr-image)
 
 docker-run:
-	@docker run -itp $(port):$(port)  $(docker-image)
+	@docker run -itp $(port):$(port)  $(gcr-image)
 
 bumpversion-patch:
 	bumpversion patch --allow-dirty
@@ -34,4 +39,4 @@ bumpversion-minor:
 	bumpversion minor --allow-dirty
 
 bumpversion-major:
-	bumpversion major --allow-dirty 
+	bumpversion major --allow-dirty

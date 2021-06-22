@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ps-chartdata
+spec:
+  selector:
+    matchLabels:
+      app: ps-chartdata
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ps-chartdata
+    spec:
+      containers:
+        - name: ps-chartdata
+          image: gcr.io/sylvan-bonbon-317613/ps-chartdata:0.0.1
+          env:
+            - name: ENV
+              value: "dev"

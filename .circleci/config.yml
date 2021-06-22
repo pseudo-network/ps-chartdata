@@ -1,0 +1,100 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@1.2.1
+  gcp-gke: circleci/gcp-gke@1.1.0
+  gcp-gcr: circleci/gcp-gcr@0.12.0
+  # cypress: cypress-io/cypress@1
+
+jobs:
+  deploy:
+    description: Deploy application to Google Kubernetes Engine
+    machine: true
+    parameters:
+      cluster:
+        description: |
+          Name of gke cluster
+        type: string
+      container:
+        description: |
+          Name of docker container with organization
+        type: string
+      deployment:
+        description: |
+          Name of k8 deployment
+        type: string
+      image:
+        description: |
+          Name of docker image with organization
+        type: string
+      tag:
+        description: |
+          Docker image tag
+        type: string
+      namespace:
+        description: |
+          K8s namespace
+        type: string
+    steps:
+      - gcp-gke/install
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: << parameters.cluster >>
+          perform-login: true
+      - gcp-gke/rollout-image:
+          cluster: << parameters.cluster >>
+          container: << parameters.container >>
+          deployment: << parameters.deployment >>
+          image: << parameters.image >>
+          tag: << parameters.tag >>
+          namespace: << parameters.namespace >>
+
+workflows:
+  docker-build-push-deploy-dev:
+    jobs:
+      - gcp-gcr/build-and-push-image:
+          image: ps-chartdata
+          tag: 0.0.1
+          registry-url: gcr.io
+          extra_build_args: "--build-arg=env=dev"
+          filters:
+            branches:
+              only:
+                - dev
+      - deploy:
+          cluster: pw-dev
+          container: ps-chartdata
+          deployment: ps-chartdata
+          image: gcr.io/sylvan-bonbon-317613/ps-chartdata
+          tag: 0.0.1
+          namespace: default
+          filters:
+            branches:
+              only:
+                - dev
+          requires:
+            - gcp-gcr/build-and-push-image
+
+  docker-build-push-deploy-prod:
+    jobs:
+      - gcp-gcr/build-and-push-image:
+          image: ps-chartdata
+          tag: 0.0.1
+          registry-url: gcr.io
+          extra_build_args: "--build-arg=env=prod"
+          filters:
+            branches:
+              only:
+                - prod
+      - deploy:
+          cluster: pw-prod
+          container: ps-chartdata
+          deployment: ps-chartdata
+          image: gcr.io/sylvan-bonbon-317613/ps-chartdata
+          tag: 0.0.1
+          namespace: default
+          filters:
+            branches:
+              only:
+                - prod
+          requires:
+            - gcp-gcr/build-and-push-image
