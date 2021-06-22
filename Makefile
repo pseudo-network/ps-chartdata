@@ -1,5 +1,5 @@
 service := ps-chartdata
-version := 0.0.2
+version := 0.0.3
 gcloud_proj_id := sylvan-bonbon-317613
 cluster := ps-dev
 gcr-image := gcr.io/${gcloud_proj_id}/${service}:${version}
