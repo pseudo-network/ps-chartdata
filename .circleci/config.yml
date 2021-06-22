@@ -66,7 +66,7 @@ workflows:
               only:
                 - dev
       - deploy:
-          cluster: ts-dev
+          cluster: ps-dev
           container: ps-chartdata
           deployment: ps-chartdata
           image: gcr.io/sylvan-bonbon-317613/ps-chartdata
@@ -88,7 +88,7 @@ workflows:
   docker-build-push-deploy-prod:
     jobs:
       - deploy:
-          cluster: ts-prod
+          cluster: ps-prod
           container: ps-chartdata
           deployment: ps-chartdata
           image: gcr.io/sylvan-bonbon-317613/ps-chartdata
