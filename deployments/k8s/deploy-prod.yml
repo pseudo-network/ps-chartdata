@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: ps-chartdata
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
   template:
