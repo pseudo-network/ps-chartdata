@@ -24,4 +24,5 @@ func main() {
 
 func initPublicRoutes(e *echo.Echo) {
 	e.GET("/history", service.GetHistoryHandler)
+	e.GET("/transaction", service.GetTransactionHandler)
 }

@@ -1,0 +1,8 @@
+make.exe --dry-run --always-make --keep-going --print-directory
+make: Entering directory 'c:/Users/Anthony/Documents/githubprojects/ps-chartdata'
+grep '^[^#[:space:]].*:' Makefile | grep -v ':=' | grep -v '^\.' | sed 's/:.*//g' | sed 's/://g' | sort
+make: Leaving directory 'c:/Users/Anthony/Documents/githubprojects/ps-chartdata'
+ 
+process_begin: CreateProcess(NULL, pwd, ...) failed.
+Makefile:6: pipe: No error
+ 

@@ -1,0 +1,1 @@
+{"buildTargets":["bootstrap","bumpversion-major","bumpversion-minor","bumpversion-patch","dev","docker-build","docker-dev","docker-push","docker-run","init","list"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}
