@@ -15,8 +15,8 @@ import (
 func GetCurrencyHistoryHandler(c echo.Context) error {
 
 	exchangeAddress := PANCAKESWAP_ADDRESS
-	quoteCurrency := c.Param("address")
-	baseCurrency := c.QueryParam("base_currency")
+	baseCurrency := c.Param("address")
+	quoteCurrency := c.QueryParam("quote_currency")
 	from := c.QueryParam("from")
 	to := c.QueryParam("to")
 	resolution := c.QueryParam("resolution")
