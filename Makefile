@@ -1,5 +1,5 @@
 service := ps-chartdata
-version := 0.0.9
+version := 0.0.10
 gcloud_proj_id := sylvan-bonbon-317613
 cluster := ps-dev
 gcr-image := gcr.io/${gcloud_proj_id}/${service}:${version}
@@ -9,15 +9,8 @@ port := 80
 list:
 	@grep '^[^#[:space:]].*:' Makefile | grep -v ':=' | grep -v '^\.' | sed 's/:.*//g' | sed 's/://g' | sort
 
-bootstrap:
-	pip install bumpversion
-	npm install
-
-init:
-	npm install
-
 dev:
-	npm start
+	go run main.go
 
 docker-build:
 	docker build -t $(gcr-image) .

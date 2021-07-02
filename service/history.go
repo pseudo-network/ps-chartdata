@@ -1,11 +1,9 @@
 package service
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"ps-chartdata/model"
+	"ps-chartdata/bitquery"
 	"strconv"
 	"strings"
 	"time"
@@ -13,23 +11,15 @@ import (
 	"github.com/labstack/echo"
 )
 
-const (
-	BITQUERY_URL       = "https://graphql.bitquery.io"
-	FROM_TIME          = "FROM_TIME"
-	TO_TIME            = "TO_TIME"
-	BASE_CURRENCY      = "BASE_CURRENCY"
-	QUOTE_CURRENCY     = "QUOTE_CURRENCY"
-	FORMATTED_INTERVAL = "FORMATTED_INTERVAL"
-)
-
 // GET/config handler
-func GetHistoryHandler(c echo.Context) error {
+func GetCurrencyHistoryHandler(c echo.Context) error {
 
-	// tickerName := c.QueryParam("symbol")
+	exchangeAddress := PANCAKESWAP_ADDRESS
+	quoteCurrency := c.Param("address")
+	baseCurrency := c.QueryParam("base_currency")
 	from := c.QueryParam("from")
 	to := c.QueryParam("to")
 	resolution := c.QueryParam("resolution")
-	// countback := c.QueryParam("countback")
 
 	fromTimeUInt, err := strconv.ParseUint(string(from), 10, 64)
 	fromTimeString := time.Unix(int64(fromTimeUInt), int64(0)).UTC().Format(time.RFC3339)
@@ -59,9 +49,9 @@ func GetHistoryHandler(c echo.Context) error {
 		ethereum(network: bsc) {
 			dexTrades(
 				date: {since: "FROM_TIME" till:"TO_TIME"}
-				exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"} 
-				baseCurrency: {is: "0x8076c74c5e3f5852037f31ff0093eeb8c8add8d3"}
-				quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
+				exchangeAddress: {is: "EXCHANGE_ADDRESS"} 
+				baseCurrency: {is: "BASE_CURRENCY"}
+				quoteCurrency: {is: "QUOTE_CURRENCY"}
 				)
 			{
 				timeInterval {
@@ -74,9 +64,11 @@ func GetHistoryHandler(c echo.Context) error {
 				open: minimum(of: block, get: quote_price)
 				close: maximum(of: block, get: quote_price)
 				 baseCurrency {
+					symbol
 					name
 				}
 				quoteCurrency {
+					symbol
 					name
 				}
 				date {
@@ -98,38 +90,33 @@ func GetHistoryHandler(c echo.Context) error {
 	)
 	query = strings.ReplaceAll(
 		query,
+		EXCHANGE_ADDRESS,
+		exchangeAddress,
+	)
+	query = strings.ReplaceAll(
+		query,
+		QUOTE_CURRENCY,
+		quoteCurrency,
+	)
+	query = strings.ReplaceAll(
+		query,
+		BASE_CURRENCY,
+		baseCurrency,
+	)
+	query = strings.ReplaceAll(
+		query,
 		FORMATTED_INTERVAL,
 		timeInterval,
 	)
 
-	reqBody, err := json.Marshal(map[string]string{
-		"query": query,
-	})
-
-	req, err := http.NewRequest("POST", BITQUERY_URL, bytes.NewBuffer(reqBody))
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-API-KEY", "BQYug1u2azt1EzuPggXfnhdhzFObRW0g")
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := bitquery.Query(query)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
-	data := make(map[string]map[string]map[string][]model.DexTrade)
-	err = json.Unmarshal(body, &data)
+	data := make(map[string]map[string]map[string][]bitquery.DexTrade)
+	err = json.Unmarshal(resp, &data)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)

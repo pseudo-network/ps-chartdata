@@ -1,18 +1,17 @@
 package service
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"ps-chartdata/model"
+	"ps-chartdata/bitquery"
+	"strings"
 
 	"github.com/labstack/echo"
 )
 
-//const ()
-
 func GetTransactionHandler(c echo.Context) error {
+
+	baseCurrency := c.Param("address")
 
 	query := `{
 		ethereum(network: bsc) {
@@ -20,61 +19,46 @@ func GetTransactionHandler(c echo.Context) error {
 			options: {limit: 100, desc: "timeInterval.second"}
 			baseCurrency: {is: "0xb27adaffb9fea1801459a1a81b17218288c097cc"}
 		  ) {
-			transaction {
-			  hash
-			}
-			timeInterval {
-			  second
-			}
-			buyAmount
-			buyCurrency {
-			  symbol
-			  address
-			}
-			sellAmount
-			sellCurrency {
-			  symbol
-			  address
-			}
-			tradeAmount(in: USD)
-			}
+				transaction {
+					hash
+				}
+				timeInterval {
+					second
+				}
+				buyAmount
+				buyCurrency {
+					symbol
+					address
+				}
+				sellAmount
+				sellCurrency {
+					symbol
+					address
+				}
+				tradeAmount(in: USD)
+				}
 		  }
-		}`
+		}
+	`
+	query = strings.ReplaceAll(
+		query,
+		BASE_CURRENCY,
+		baseCurrency,
+	)
 
-	reqBodyTransaction, err := json.Marshal(map[string]string{
-		"query": query,
-	})
-
-	reqTransaction, err := http.NewRequest("POST", BITQUERY_URL, bytes.NewBuffer(reqBodyTransaction))
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	reqTransaction.Header.Set("Content-Type", "application/json")
-	reqTransaction.Header.Set("X-API-KEY", "BQYug1u2azt1EzuPggXfnhdhzFObRW0g")
-
-	respTransaction, err := http.DefaultClient.Do(reqTransaction)
+	resp, err := bitquery.Query(query)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	defer respTransaction.Body.Close()
-
-	body, err := ioutil.ReadAll(respTransaction.Body)
+	data := make(map[string]map[string]map[string][]bitquery.Transaction)
+	err = json.Unmarshal(resp, &data)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	data := make(map[string]map[string]map[string][]model.Transaction)
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
-	// todo:potentially revise this to be dynamic for other crypto networks
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
 	return c.JSON(http.StatusOK, dexTrades)
