@@ -20,10 +20,7 @@ func GetCurrencyHandler(c echo.Context) error {
 
 	query := `
 		query {
-			search(string: "SEARCH_QUERY"){
-				network{
-					network
-				}
+			search(string: "SEARCH_QUERY", network:bsc){
 				subject{
 					__typename
 					... on Address {
