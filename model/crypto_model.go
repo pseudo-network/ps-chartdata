@@ -19,7 +19,7 @@ func NewCrypto(name, address, symbol, tokenType, network string) *Crypto {
 }
 
 type CryptoInfo struct {
-	BeginningPrice float64 `json:"begginning_price"`
+	BeginningPrice float64 `json:"beginning_price"`
 	CurrentPrice   float64 `json:"current_price"`
 	Volume         float64 `json:"volume"`
 	PercentChange  float64 `json:"percent_change"`
@@ -27,7 +27,7 @@ type CryptoInfo struct {
 
 func NewCryptoInfo(beginningPrice, currentPrice, volume float64) *CryptoInfo {
 
-	percentChange := (beginningPrice - currentPrice) / beginningPrice
+	percentChange := ((beginningPrice - currentPrice) / beginningPrice) * 100
 
 	return &CryptoInfo{
 		BeginningPrice: beginningPrice,
