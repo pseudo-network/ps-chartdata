@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-// GET/config handler
+// GET/cryptos/:address/bars
 func GetCryptoBarsHandler(c echo.Context) error {
 
 	exchangeAddress := PANCAKESWAP_ADDRESS
@@ -22,11 +22,11 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	to := c.QueryParam("to")
 	resolution := c.QueryParam("resolution")
 
-	fromTimeUInt, err := strconv.ParseUint(string(from), 10, 64)
-	fromTimeString := time.Unix(int64(fromTimeUInt), int64(0)).UTC().Format(time.RFC3339)
+	fromDateUInt, err := strconv.ParseUint(string(from), 10, 64)
+	fromDateString := time.Unix(int64(fromDateUInt), int64(0)).UTC().Format(time.RFC3339)
 
-	toTimeUInt, err := strconv.ParseUint(string(to), 10, 64)
-	toTimeString := time.Unix(int64(toTimeUInt), int64(0)).UTC().Format(time.RFC3339)
+	tillDateUInt, err := strconv.ParseUint(string(to), 10, 64)
+	tillDateString := time.Unix(int64(tillDateUInt), int64(0)).UTC().Format(time.RFC3339)
 
 	// todo: these need to be refactored
 	timeInterval := "minute(count: 1)"
@@ -49,10 +49,10 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	query := `{
 		ethereum(network: bsc) {
 			dexTrades(
-				date: {since: "FROM_TIME" till:"TO_TIME"}
+				date: {since: "DATE_FROM" till:"DATE_TILL"}
 				exchangeAddress: {is: "EXCHANGE_ADDRESS"} 
-				baseCurrency: {is: "BASE_CURRENCY"}
-				quoteCurrency: {is: "QUOTE_CURRENCY"}
+				baseCurrency: {is: "CURRENCY_BASE"}
+				quoteCurrency: {is: "CURRENCY_QUOTE"}
 				)
 			{
 				timeInterval {
@@ -81,13 +81,13 @@ func GetCryptoBarsHandler(c echo.Context) error {
 
 	query = strings.ReplaceAll(
 		query,
-		FROM_TIME,
-		fromTimeString,
+		DATE_FROM,
+		fromDateString,
 	)
 	query = strings.ReplaceAll(
 		query,
-		TO_TIME,
-		toTimeString,
+		DATE_TILL,
+		tillDateString,
 	)
 	query = strings.ReplaceAll(
 		query,
@@ -96,12 +96,12 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	)
 	query = strings.ReplaceAll(
 		query,
-		QUOTE_CURRENCY,
+		CURRENCY_QUOTE,
 		quoteCurrency,
 	)
 	query = strings.ReplaceAll(
 		query,
-		BASE_CURRENCY,
+		CURRENCY_BASE,
 		baseCurrency,
 	)
 	query = strings.ReplaceAll(
@@ -140,8 +140,8 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, dexTrades)
 }
 
-func GetCryptoHandler(c echo.Context) error {
-
+// GET/cryptos
+func GetCryptosHandler(c echo.Context) error {
 	searchQuery := c.QueryParam("search_query")
 
 	query := `
@@ -199,4 +199,134 @@ func GetCryptoHandler(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, cryptos)
+}
+
+// GET/cryptos/:address/transactions
+func GetCryptoTransactionsHandler(c echo.Context) error {
+	baseCurrency := c.Param("address")
+
+	query := `{
+		ethereum(network: bsc) {
+		  dexTrades(
+			options: {limit: 100, desc: "timeInterval.second"}
+			baseCurrency: {is: "CURRENCY_BASE"}
+		  ) {
+				transaction {
+					hash
+				}
+				timeInterval {
+					second
+				}
+				buyAmount
+				buyCurrency {
+					symbol
+					address
+				}
+				sellAmount
+				sellCurrency {
+					symbol
+					address
+				}
+				tradeAmount(in: USD)
+				}
+		  }
+		}
+	`
+	query = strings.ReplaceAll(
+		query,
+		CURRENCY_BASE,
+		baseCurrency,
+	)
+
+	resp, err := bitquery.Query(query)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	data := make(map[string]map[string]map[string][]bitquery.Transaction)
+	err = json.Unmarshal(resp, &data)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	dexTrades := data["data"]["ethereum"]["dexTrades"]
+
+	return c.JSON(http.StatusOK, dexTrades)
+}
+
+// GET/cryptos/:address/info
+func GetCryptoInfoByAddressHandler(c echo.Context) error {
+	baseCurrency := c.Param("address")
+	quoteCurrency := c.QueryParam("quote_currency")
+	fromDateString := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
+	tillDateString := time.Now().Format(time.RFC3339)
+
+	query := `{
+		ethereum(network: bsc) {
+			volume: dexTrades(
+				date: {since: "DATE_FROM", till: "DATE_TILL"}
+				baseCurrency: {is: "CURRENCY_BASE"}
+			) {
+				tradeAmount(in: USD)
+			}
+			begPrice: dexTrades(
+				date: {is: "DATE_FROM"}
+				baseCurrency: {is: "CURRENCY_BASE"}
+				quoteCurrency: {is: "CURRENCY_QUOTE"}
+			) {
+				quotePrice
+			}
+			currentPrice: dexTrades(
+				date: {is: "DATE_TILL"}
+				baseCurrency: {is: "CURRENCY_BASE"}
+				quoteCurrency: {is: "CURRENCY_QUOTE"}
+			) {
+				quotePrice
+			}
+		}
+	}
+	`
+	query = strings.ReplaceAll(
+		query,
+		DATE_FROM,
+		fromDateString,
+	)
+	query = strings.ReplaceAll(
+		query,
+		DATE_TILL,
+		tillDateString,
+	)
+	query = strings.ReplaceAll(
+		query,
+		CURRENCY_BASE,
+		baseCurrency,
+	)
+	query = strings.ReplaceAll(
+		query,
+		CURRENCY_QUOTE,
+		quoteCurrency,
+	)
+
+	resp, err := bitquery.Query(query)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	data := make(map[string]map[string]map[string][]map[string]json.Number)
+	err = json.Unmarshal(resp, &data)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	begPrice, _ := data["data"]["ethereum"]["begPrice"][0]["quotePrice"].Float64()
+	curPrice, _ := data["data"]["ethereum"]["currentPrice"][0]["quotePrice"].Float64()
+	volume, _ := data["data"]["ethereum"]["volume"][0]["tradeAmount"].Float64()
+
+	cryptoInfo := model.NewCryptoInfo(begPrice, curPrice, volume)
+
+	return c.JSON(http.StatusOK, cryptoInfo)
 }

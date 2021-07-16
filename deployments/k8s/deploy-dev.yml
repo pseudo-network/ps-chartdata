@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ps-chartdata
-          image: gcr.io/sylvan-bonbon-317613/ps-chartdata:0.0.13
+          image: gcr.io/sylvan-bonbon-317613/ps-chartdata:0.0.14
           env:
             - name: ENV
               value: "dev"

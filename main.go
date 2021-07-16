@@ -23,7 +23,8 @@ func main() {
 }
 
 func initPublicRoutes(e *echo.Echo) {
-	e.GET("/cryptos", service.GetCryptoHandler)
+	e.GET("/cryptos", service.GetCryptosHandler)
+	e.GET("/cryptos/:address/info", service.GetCryptoInfoByAddressHandler)
 	e.GET("/cryptos/:address/bars", service.GetCryptoBarsHandler)
 	e.GET("/cryptos/:address/transactions", service.GetCryptoTransactionsHandler)
 }
