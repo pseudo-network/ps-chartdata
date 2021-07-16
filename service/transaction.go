@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-func GetTransactionHandler(c echo.Context) error {
+func GetCryptoTransactionsHandler(c echo.Context) error {
 
 	baseCurrency := c.Param("address")
 
