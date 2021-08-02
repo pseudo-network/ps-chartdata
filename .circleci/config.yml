@@ -59,7 +59,7 @@ workflows:
     jobs:
       - gcp-gcr/build-and-push-image:
           image: ps-chartdata
-          tag: 0.0.15
+          tag: 0.0.16
           registry-url: gcr.io
           filters:
             branches:
@@ -70,7 +70,7 @@ workflows:
           container: ps-chartdata
           deployment: ps-chartdata
           image: gcr.io/sylvan-bonbon-317613/ps-chartdata
-          tag: 0.0.15
+          tag: 0.0.16
           filters:
             branches:
               only:
@@ -92,7 +92,7 @@ workflows:
           container: ps-chartdata
           deployment: ps-chartdata
           image: gcr.io/sylvan-bonbon-317613/ps-chartdata
-          tag: 0.0.15
+          tag: 0.0.16
           filters:
             branches:
               only:

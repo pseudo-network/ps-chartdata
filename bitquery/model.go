@@ -24,7 +24,7 @@ type Currency struct {
 }
 
 type TimeInterval struct {
-	Minute string `json:"minute"`
+	Second string `json:"second"`
 }
 
 type Crypto struct {

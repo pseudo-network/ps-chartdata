@@ -29,7 +29,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	tillDateString := time.Unix(int64(tillDateUInt), int64(0)).UTC().Format(time.RFC3339)
 
 	// todo: these need to be refactored
-	timeInterval := "minute(count: 1)"
+	timeInterval := "second(count: 60)"
 	if resolution == "5" {
 		timeInterval = "minute(count: 5)"
 	} else if resolution == "60" {
@@ -128,7 +128,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 
 	// map time interval to unix time ms for tradingview
 	for i, t := range dexTrades {
-		dateTime, err := time.Parse("2006-01-02 15:04:00", t.TimeInterval.Minute)
+		dateTime, err := time.Parse("2006-01-02 15:04:00", t.TimeInterval.Second)
 		if err != nil {
 			c.Logger().Error(err)
 			continue
