@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
@@ -14,40 +15,41 @@ var Conf *Config
 func InitConf() {
 	Conf = new(Config)
 	Conf.setEnv()
-	// if err := Conf.setupViper(); err != nil {
-	// 	panic(err)
-	// }
+	if err := Conf.setupViper(); err != nil {
+		panic(err)
+	}
 	Conf.setupConfig()
 }
 
 // service config generate at build
 type Config struct {
-	Env        string
-	ConsulHost string
-	ConsulPort string
-	MongoRC    []string
+	Env            string
+	ConsulHost     string
+	ConsulPort     string
+	MongoRC        []string
+	BitqueryAPIKey string
 }
 
 // set environment
 func (c *Config) setEnv() {
-	// env := os.Getenv("ENV")
-	// if env == DEV {
-	// 	c.Env = DEV
-	// 	c.ConsulHost = CONSUL_HOST_CLUSTER
-	// 	c.ConsulPort = CONSUL_PORT_CLUSTER
-	// } else if env == STAGE {
-	// 	c.Env = STAGE
-	// 	c.ConsulHost = CONSUL_HOST_CLUSTER
-	// 	c.ConsulPort = CONSUL_PORT_CLUSTER
-	// } else if env == PROD {
-	// 	c.Env = PROD
-	// 	c.ConsulHost = CONSUL_HOST_CLUSTER
-	// 	c.ConsulPort = CONSUL_PORT_CLUSTER
-	// } else {
-	// 	c.Env = WORKSTATION
-	// 	c.ConsulHost = CONSUL_HOST_DEV
-	// 	c.ConsulPort = CONSUL_PORT_DEV
-	// }
+	env := os.Getenv("ENV")
+	if env == DEV {
+		c.Env = DEV
+		c.ConsulHost = CONSUL_HOST_CLUSTER
+		c.ConsulPort = CONSUL_PORT_CLUSTER
+	} else if env == STAGE {
+		c.Env = STAGE
+		c.ConsulHost = CONSUL_HOST_CLUSTER
+		c.ConsulPort = CONSUL_PORT_CLUSTER
+	} else if env == PROD {
+		c.Env = PROD
+		c.ConsulHost = CONSUL_HOST_CLUSTER
+		c.ConsulPort = CONSUL_PORT_CLUSTER
+	} else {
+		c.Env = WORKSTATION
+		c.ConsulHost = CONSUL_HOST_DEV
+		c.ConsulPort = CONSUL_PORT_DEV
+	}
 }
 
 // setup viper to use consul as the remote config provider
@@ -77,6 +79,13 @@ func (c *Config) setupConfig() {
 
 	// 	c.MongoRC = mongoRC
 	// }
+
+	bitqueryAPIKey, err := getBitqueryAPIKey()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	c.BitqueryAPIKey = *bitqueryAPIKey
 }
 
 // get environment set at build
@@ -113,19 +122,12 @@ func GetMongoPassword() (*string, error) {
 	return &password, nil
 }
 
-// get shopmonkey API keys
-func GetShopMonkeyAPIKeys() (string, string, error) {
-	if err := viper.ReadRemoteConfig(); err != nil {
-		return "", "", err
-	}
-	publicKey := viper.GetString("shop_monkey_public_key")
-	if publicKey == "" {
-		return "", "", errors.New("Shop Monkey public key is blank")
-	}
-	privateKey := viper.GetString("shop_monkey_private_key")
-	if privateKey == "" {
-		return "", "", errors.New("Shop Monkey private key is blank")
+// get mongo admin password
+func getBitqueryAPIKey() (*string, error) {
+	kv := viper.GetString("bitquery_api_key")
+	if kv == "" {
+		return nil, errors.New("no bitquery api key found")
 	}
 
-	return publicKey, privateKey, nil
+	return &kv, nil
 }

@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"ps-chartdata/config"
 )
 
 const (
-	BITQUERY_URL     = "https://graphql.bitquery.io"
-	BITQUERY_API_KEY = "BQYug1u2azt1EzuPggXfnhdhzFObRW0g"
+	BITQUERY_URL = "https://graphql.bitquery.io"
 )
 
 func Query(query string) ([]byte, error) {
@@ -26,7 +26,7 @@ func Query(query string) ([]byte, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-API-KEY", BITQUERY_API_KEY)
+	req.Header.Set("X-API-KEY", config.Conf.BitqueryAPIKey)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
