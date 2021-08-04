@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"ps-chartdata/bitquery"
 	"ps-chartdata/model"
@@ -20,7 +21,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	quoteCurrency := c.QueryParam("quote_currency")
 	from := c.QueryParam("from")
 	to := c.QueryParam("to")
-	resolution := c.QueryParam("resolution")
+	// resolution := c.QueryParam("resolution")
 
 	fromDateUInt, err := strconv.ParseUint(string(from), 10, 64)
 	fromDateString := time.Unix(int64(fromDateUInt), int64(0)).UTC().Format(time.RFC3339)
@@ -29,55 +30,82 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	tillDateString := time.Unix(int64(tillDateUInt), int64(0)).UTC().Format(time.RFC3339)
 
 	// todo: these need to be refactored
-	timeInterval := "second(count: 60)"
-	if resolution == "5" {
-		timeInterval = "minute(count: 5)"
-	} else if resolution == "60" {
-		timeInterval = "minute(count: 60)"
-	} else if resolution == "240" {
-		timeInterval = "minute(count: 240)"
-	} else if resolution == "D" {
-		timeInterval = "minute(count: 1440)"
-	} else if resolution == "5D" {
-		timeInterval = "minute(count: 7200)"
-	} else if resolution == "1w" {
-		timeInterval = "minute(count: 10080)"
-	} else if resolution == "1m" {
-		timeInterval = "minute(count: 43200)"
-	}
+	timeInterval := `minute(count: 15, format: "%Y-%m-%dT%H:%M:%SZ") `
+	// if resolution == "5" {
+	// 	timeInterval = "minute(count: 5)"
+	// } else if resolution == "60" {
+	// 	timeInterval = "minute(count: 60)"
+	// } else if resolution == "240" {
+	// 	timeInterval = "minute(count: 240)"
+	// } else if resolution == "D" {
+	// 	timeInterval = "minute(count: 1440)"
+	// } else if resolution == "5D" {
+	// 	timeInterval = "minute(count: 7200)"
+	// } else if resolution == "1w" {
+	// 	timeInterval = "minute(count: 10080)"
+	// } else if resolution == "1m" {
+	// 	timeInterval = "minute(count: 43200)"
+	// }
 
-	query := `{
-		ethereum(network: bsc) {
-			dexTrades(
-				date: {since: "DATE_FROM" till:"DATE_TILL"}
-				exchangeAddress: {is: "EXCHANGE_ADDRESS"} 
-				baseCurrency: {is: "CURRENCY_BASE"}
-				quoteCurrency: {is: "CURRENCY_QUOTE"}
+	query := `
+		{
+			ethereum(network: bsc) {
+				dexTrades(
+					options: {asc: "timeInterval.second"}
+					date: {since: "DATE_FROM", till: "DATE_TILL"}
+					exchangeAddress: {is: "EXCHANGE_ADDRESS"}
+					baseCurrency: {is: "CURRENCY_BASE"},
+					quoteCurrency: {is: "CURRENCY_QUOTE"},
+					tradeAmountUsd: {gt: 10}
 				)
-			{
-				timeInterval {
-					FORMATTED_INTERVAL
-				}
-				tradeAmount(in:USD)
-        		trades:count
-				high: quotePrice(calculate: maximum)
-				low: quotePrice(calculate: minimum)
-				open: minimum(of: block, get: quote_price)
-				close: maximum(of: block, get: quote_price)
-				 baseCurrency {
-					symbol
-					name
-				}
-				quoteCurrency {
-					symbol
-					name
-				}
-				date {
-					date
+				{
+					timeInterval {
+						second(count: 60, format: "%Y-%m-%dT%H:%M:%SZ")
+					}
+					tradeAmount(in:USD)
+	       		trades:count
+					volume: quoteAmount
+					high: quotePrice(calculate: maximum)
+					low: quotePrice(calculate: minimum)
+					open: minimum(of: block, get: quote_price)
+					close: maximum(of: block, get: quote_price)
 				}
 			}
 		}
-	}`
+	`
+
+	// query := `{
+	// 	ethereum(network: bsc) {
+	// 		dexTrades(
+	// 			date: {since: "DATE_FROM" till:"DATE_TILL"}
+	// 			exchangeAddress: {is: "EXCHANGE_ADDRESS"}
+	// 			baseCurrency: {is: "CURRENCY_BASE"}
+	// 			quoteCurrency: {is: "CURRENCY_QUOTE"}
+	// 			)
+	// 		{
+	// 			timeInterval {
+	// 				FORMATTED_INTERVAL
+	// 			}
+	// 			tradeAmount(in:USD)
+	//       		trades:count
+	// 			high: quotePrice(calculate: maximum)
+	// 			low: quotePrice(calculate: minimum)
+	// 			open: minimum(of: block, get: quote_price)
+	// 			close: maximum(of: block, get: quote_price)
+	// 			 baseCurrency {
+	// 				symbol
+	// 				name
+	// 			}
+	// 			quoteCurrency {
+	// 				symbol
+	// 				name
+	// 			}
+	// 			date {
+	// 				date
+	// 			}
+	// 		}
+	// 	}
+	// }`
 
 	query = strings.ReplaceAll(
 		query,
@@ -110,6 +138,14 @@ func GetCryptoBarsHandler(c echo.Context) error {
 		timeInterval,
 	)
 
+	fmt.Println()
+	fmt.Println()
+	fmt.Println()
+	fmt.Println(query)
+	fmt.Println()
+	fmt.Println()
+	fmt.Println()
+
 	resp, err := bitquery.Query(query)
 	if err != nil {
 		c.Logger().Error(err)
@@ -126,18 +162,41 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	// todo:potentially revise this to be dynamic for other crypto networks
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
-	// map time interval to unix time ms for tradingview
-	for i, t := range dexTrades {
-		dateTime, err := time.Parse("2006-01-02 15:04:00", t.TimeInterval.Second)
+	var bars []Bar
+	for _, t := range dexTrades {
+		bar := Bar{}
+
+		dateTime, err := time.Parse("2006-01-02T15:04:00Z", t.TimeInterval.Second)
 		if err != nil {
 			c.Logger().Error(err)
 			continue
 		}
-		t.UnixTimeMS = int64(dateTime.Unix()) * 1000
-		dexTrades[i] = t
+		bar.Time = int64(dateTime.Unix()) * 1000
+
+		open, err := strconv.ParseFloat(t.Open, 64)
+		if err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		bar.Open = open
+
+		bar.High = t.High
+
+		bar.Low = t.Low
+
+		close, err := strconv.ParseFloat(t.Close, 64)
+		if err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		bar.Close = close
+
+		bar.Volume = t.TradeAmount
+
+		bars = append(bars, bar)
 	}
 
-	return c.JSON(http.StatusOK, dexTrades)
+	return c.JSON(http.StatusOK, bars)
 }
 
 // GET/cryptos
