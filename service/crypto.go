@@ -53,7 +53,6 @@ func GetCryptoBarsHandler(c echo.Context) error {
 				dexTrades(
 					options: {asc: "timeInterval.second"}
 					date: {since: "DATE_FROM", till: "DATE_TILL"}
-					exchangeAddress: {is: "EXCHANGE_ADDRESS"}
 					baseCurrency: {is: "CURRENCY_BASE"},
 					quoteCurrency: {is: "CURRENCY_QUOTE"},
 					tradeAmountUsd: {gt: 10}
@@ -70,7 +69,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 					open: minimum(of: block, get: quote_price)
 					close: maximum(of: block, get: quote_price)
 				}
-			}
+			}z
 		}
 	`
 
