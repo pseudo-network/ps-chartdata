@@ -69,7 +69,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 					open: minimum(of: block, get: quote_price)
 					close: maximum(of: block, get: quote_price)
 				}
-			}z
+			}
 		}
 	`
 
