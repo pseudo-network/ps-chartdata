@@ -331,14 +331,14 @@ func GetCryptoInfoByAddressHandler(c echo.Context) error {
 				tradeAmount(in: USD)
 			}
 			begPrice: dexTrades(
-				date: {is: "DATE_FROM"}
+				date: {in: "DATE_FROM"}
 				baseCurrency: {is: "CURRENCY_BASE"}
 				quoteCurrency: {is: "CURRENCY_QUOTE"}
 			) {
 				quotePrice
 			}
 			currentPrice: dexTrades(
-				date: {is: "DATE_TILL"}
+				date: {in: "DATE_TILL"}
 				baseCurrency: {is: "CURRENCY_BASE"}
 				quoteCurrency: {is: "CURRENCY_QUOTE"}
 			) {
