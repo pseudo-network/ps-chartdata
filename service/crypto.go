@@ -52,6 +52,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 			ethereum(network: bsc) {
 				dexTrades(
 					options: {asc: "timeInterval.second"}
+					exchangeName: {in: ["Pancake", "Pancake v2"]}
 					date: {since: "DATE_FROM", till: "DATE_TILL"}
 					baseCurrency: {is: "CURRENCY_BASE"},
 					quoteCurrency: {is: "CURRENCY_QUOTE"},
@@ -366,6 +367,8 @@ func GetCryptoInfoByAddressHandler(c echo.Context) error {
 		CURRENCY_QUOTE,
 		quoteCurrency,
 	)
+
+	fmt.Println(query)
 
 	resp, err := bitquery.Query(query)
 	if err != nil {
