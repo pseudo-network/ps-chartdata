@@ -2,7 +2,7 @@ package main
 
 import (
 	"ps-chartdata/config"
-	"ps-chartdata/service"
+	"ps-chartdata/handler"
 	"strconv"
 
 	"github.com/labstack/echo"
@@ -23,8 +23,9 @@ func main() {
 }
 
 func initPublicRoutes(e *echo.Echo) {
-	e.GET("/cryptos", service.GetCryptosHandler)
-	e.GET("/cryptos/:address/info", service.GetCryptoInfoByAddressHandler)
-	e.GET("/cryptos/:address/bars", service.GetCryptoBarsHandler)
-	e.GET("/cryptos/:address/transactions", service.GetCryptoTransactionsHandler)
+	e.GET("/cryptos", handler.GetCryptosHandler)
+	e.GET("/cryptos/:address/info", handler.GetCryptoInfoByAddressHandler)
+	e.GET("/cryptos/:address/bars", handler.GetCryptoBarsHandler)
+	e.GET("/cryptos/:address/transactions", handler.GetCryptoTransactionsHandler)
+	e.GET("/wallets/:address/balances", handler.GetWalletBalancesByAddressHandler)
 }

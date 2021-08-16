@@ -71,3 +71,13 @@ type Hash struct {
 type TimeIntervalSecond struct {
 	Second string `json:"second"`
 }
+
+type Block struct {
+	Height int `json:"height"`
+}
+
+type Info struct {
+	Block       Block   `json:"block"`
+	TradeAmount float64 `json:"tradeAmount"`
+	QuotePrice  float64 `json:"quotePrice"`
+}

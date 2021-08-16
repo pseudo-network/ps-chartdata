@@ -3,49 +3,25 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"ps-chartdata/bitquery"
 	"ps-chartdata/model"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/labstack/echo"
 )
 
-// GET/cryptos/:address/bars
-func GetCryptoBarsHandler(c echo.Context) error {
+func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 string) ([]model.Bar, error) {
 
-	exchangeAddress := PANCAKESWAP_ADDRESS
-	baseCurrency := c.Param("address")
-	quoteCurrency := c.QueryParam("quote_currency")
-	from := c.QueryParam("from")
-	to := c.QueryParam("to")
-	// resolution := c.QueryParam("resolution")
-
-	fromDateUInt, err := strconv.ParseUint(string(from), 10, 64)
-	fromDateString := time.Unix(int64(fromDateUInt), int64(0)).UTC().Format(time.RFC3339)
-
-	tillDateUInt, err := strconv.ParseUint(string(to), 10, 64)
-	tillDateString := time.Unix(int64(tillDateUInt), int64(0)).UTC().Format(time.RFC3339)
-
-	// todo: these need to be refactored
-	timeInterval := `minute(count: 15, format: "%Y-%m-%dT%H:%M:%SZ") `
-	// if resolution == "5" {
-	// 	timeInterval = "minute(count: 5)"
-	// } else if resolution == "60" {
-	// 	timeInterval = "minute(count: 60)"
-	// } else if resolution == "240" {
-	// 	timeInterval = "minute(count: 240)"
-	// } else if resolution == "D" {
-	// 	timeInterval = "minute(count: 1440)"
-	// } else if resolution == "5D" {
-	// 	timeInterval = "minute(count: 7200)"
-	// } else if resolution == "1w" {
-	// 	timeInterval = "minute(count: 10080)"
-	// } else if resolution == "1m" {
-	// 	timeInterval = "minute(count: 43200)"
-	// }
+	var usdMultiplier *float64
+	if quoteCurrency == WBNB_ADDRESS {
+		bnbUSD, err := GetBNBInfo()
+		if err != nil {
+			return nil, err
+		}
+		usdMultiplier = &bnbUSD.CurrentPrice
+	} else {
+		usdMultiplier = nil
+	}
 
 	query := `
 		{
@@ -74,53 +50,15 @@ func GetCryptoBarsHandler(c echo.Context) error {
 		}
 	`
 
-	// query := `{
-	// 	ethereum(network: bsc) {
-	// 		dexTrades(
-	// 			date: {since: "DATE_FROM" till:"DATE_TILL"}
-	// 			exchangeAddress: {is: "EXCHANGE_ADDRESS"}
-	// 			baseCurrency: {is: "CURRENCY_BASE"}
-	// 			quoteCurrency: {is: "CURRENCY_QUOTE"}
-	// 			)
-	// 		{
-	// 			timeInterval {
-	// 				FORMATTED_INTERVAL
-	// 			}
-	// 			tradeAmount(in:USD)
-	//       		trades:count
-	// 			high: quotePrice(calculate: maximum)
-	// 			low: quotePrice(calculate: minimum)
-	// 			open: minimum(of: block, get: quote_price)
-	// 			close: maximum(of: block, get: quote_price)
-	// 			 baseCurrency {
-	// 				symbol
-	// 				name
-	// 			}
-	// 			quoteCurrency {
-	// 				symbol
-	// 				name
-	// 			}
-	// 			date {
-	// 				date
-	// 			}
-	// 		}
-	// 	}
-	// }`
-
 	query = strings.ReplaceAll(
 		query,
 		DATE_FROM,
-		fromDateString,
+		fromRFC3339,
 	)
 	query = strings.ReplaceAll(
 		query,
 		DATE_TILL,
-		tillDateString,
-	)
-	query = strings.ReplaceAll(
-		query,
-		EXCHANGE_ADDRESS,
-		exchangeAddress,
+		toRFC3339,
 	)
 	query = strings.ReplaceAll(
 		query,
@@ -132,51 +70,33 @@ func GetCryptoBarsHandler(c echo.Context) error {
 		CURRENCY_BASE,
 		baseCurrency,
 	)
-	query = strings.ReplaceAll(
-		query,
-		FORMATTED_INTERVAL,
-		timeInterval,
-	)
-
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
-	fmt.Println(query)
-	fmt.Println()
-	fmt.Println()
-	fmt.Println()
 
 	resp, err := bitquery.Query(query)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	data := make(map[string]map[string]map[string][]bitquery.DexTrade)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
-	// todo:potentially revise this to be dynamic for other crypto networks
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
-	var bars []Bar
+	var bars []model.Bar
 	for _, t := range dexTrades {
-		bar := Bar{}
+		bar := model.Bar{}
 
 		dateTime, err := time.Parse("2006-01-02T15:04:00Z", t.TimeInterval.Second)
 		if err != nil {
-			c.Logger().Error(err)
 			continue
 		}
 		bar.Time = int64(dateTime.Unix()) * 1000
 
 		open, err := strconv.ParseFloat(t.Open, 64)
 		if err != nil {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusInternalServerError, err)
+			return nil, err
 		}
 		bar.Open = open
 
@@ -186,23 +106,27 @@ func GetCryptoBarsHandler(c echo.Context) error {
 
 		close, err := strconv.ParseFloat(t.Close, 64)
 		if err != nil {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusInternalServerError, err)
+			return nil, err
 		}
 		bar.Close = close
 
 		bar.Volume = t.TradeAmount
 
+		if usdMultiplier != nil {
+			bar.Open = bar.Open * *usdMultiplier
+			bar.High = bar.High * *usdMultiplier
+			bar.Low = bar.Low * *usdMultiplier
+			bar.Close = bar.Close * *usdMultiplier
+			bar.Volume = bar.Volume * *usdMultiplier
+		}
+
 		bars = append(bars, bar)
 	}
 
-	return c.JSON(http.StatusOK, bars)
+	return bars, nil
 }
 
-// GET/cryptos
-func GetCryptosHandler(c echo.Context) error {
-	searchQuery := c.QueryParam("search_query")
-
+func GetCryptos(searchQuery string) ([]model.Crypto, error) {
 	query := `
 		query {
 			search(string: "SEARCH_QUERY", network:bsc){
@@ -240,15 +164,13 @@ func GetCryptosHandler(c echo.Context) error {
 
 	resp, err := bitquery.Query(query)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	data := make(map[string]map[string][]bitquery.Crypto)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	cryptos := []model.Crypto{}
@@ -257,13 +179,10 @@ func GetCryptosHandler(c echo.Context) error {
 		cryptos = append(cryptos, *crypto)
 	}
 
-	return c.JSON(http.StatusOK, cryptos)
+	return cryptos, nil
 }
 
-// GET/cryptos/:address/transactions
-func GetCryptoTransactionsHandler(c echo.Context) error {
-	baseCurrency := c.Param("address")
-
+func GetCryptoTransactionsByAddress(address string) ([]bitquery.Transaction, error) {
 	query := `{
 		ethereum(network: bsc) {
 		  dexTrades(
@@ -294,33 +213,26 @@ func GetCryptoTransactionsHandler(c echo.Context) error {
 	query = strings.ReplaceAll(
 		query,
 		CURRENCY_BASE,
-		baseCurrency,
+		address,
 	)
 
 	resp, err := bitquery.Query(query)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	data := make(map[string]map[string]map[string][]bitquery.Transaction)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
-	return c.JSON(http.StatusOK, dexTrades)
+	return dexTrades, nil
 }
 
-// GET/cryptos/:address/info
-func GetCryptoInfoByAddressHandler(c echo.Context) error {
-	baseCurrency := c.Param("address")
-	quoteCurrency := c.QueryParam("quote_currency")
-	fromDateString := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
-	tillDateString := time.Now().Format(time.RFC3339)
+func GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 string) (*model.CryptoInfo, error) {
 
 	query := `{
 		ethereum(network: bsc) {
@@ -328,7 +240,7 @@ func GetCryptoInfoByAddressHandler(c echo.Context) error {
 				date: {since: "DATE_FROM", till: "DATE_TILL"}
 				baseCurrency: {is: "CURRENCY_BASE"}
 			) {
-				tradeAmount(in: USD)
+      	tradeAmount(in: USD)
 			}
 			begPrice: dexTrades(
 				date: {in: "DATE_FROM"}
@@ -338,24 +250,30 @@ func GetCryptoInfoByAddressHandler(c echo.Context) error {
 				quotePrice
 			}
 			currentPrice: dexTrades(
-				date: {in: "DATE_TILL"}
-				baseCurrency: {is: "CURRENCY_BASE"}
+				options: {desc: ["block.height"], limit: 1}
+        exchangeName: {in: ["Pancake", "Pancake v2"]}
+        baseCurrency: {is: "CURRENCY_BASE"}
 				quoteCurrency: {is: "CURRENCY_QUOTE"}
+				date: {after: "DATE_FROM"}
 			) {
+        block {
+          height
+        }
 				quotePrice
 			}
 		}
 	}
 	`
+
 	query = strings.ReplaceAll(
 		query,
 		DATE_FROM,
-		fromDateString,
+		fromRFC3339,
 	)
 	query = strings.ReplaceAll(
 		query,
 		DATE_TILL,
-		tillDateString,
+		toRFC3339,
 	)
 	query = strings.ReplaceAll(
 		query,
@@ -372,22 +290,33 @@ func GetCryptoInfoByAddressHandler(c echo.Context) error {
 
 	resp, err := bitquery.Query(query)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
-	data := make(map[string]map[string]map[string][]map[string]json.Number)
+	data := make(map[string]map[string]map[string][]bitquery.Info)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
-	begPrice, _ := data["data"]["ethereum"]["begPrice"][0]["quotePrice"].Float64()
-	curPrice, _ := data["data"]["ethereum"]["currentPrice"][0]["quotePrice"].Float64()
-	volume, _ := data["data"]["ethereum"]["volume"][0]["tradeAmount"].Float64()
+	begPrice := data["data"]["ethereum"]["begPrice"][0].QuotePrice
+	curPrice := data["data"]["ethereum"]["currentPrice"][0].QuotePrice
+	volume := data["data"]["ethereum"]["volume"][0].TradeAmount
 
-	cryptoInfo := model.NewCryptoInfo(begPrice, curPrice, volume)
+	var usdMultiplier *float64
+	if quoteCurrency == WBNB_ADDRESS {
+		bnbUSD, err := GetBNBInfo()
+		if err != nil {
+			return nil, err
+		}
+		usdMultiplier = &bnbUSD.CurrentPrice
+	} else {
+		usdMultiplier = nil
+	}
 
-	return c.JSON(http.StatusOK, cryptoInfo)
+	fmt.Println(usdMultiplier)
+
+	cryptoInfo := model.NewCryptoInfo(begPrice, curPrice, volume, usdMultiplier)
+
+	return cryptoInfo, nil
 }
