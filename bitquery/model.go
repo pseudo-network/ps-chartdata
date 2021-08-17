@@ -87,17 +87,18 @@ type Summary struct {
 }
 
 type DaySummary struct {
-	TimeInterval  TimeInterval `json:"timeInterval"`
-	BaseCurrency  Currency     `json:"baseCurrency"`
-	QuoteCurrency Currency     `json:"quoteCurrency"`
-	QuotePrice    float64      `json:"quotePrice"`
-	QuoteAmount   float64      `json:"quoteAmount"`
-	TradeCount    float64      `json:"tradeCount"`
-	TradeVolume   float64      `json:"tradeVolume"`
-	MaxPrice      float64      `json:"maxPrice"`
-	MinPrice      float64      `json:"minPrice"`
-	OpenPrice     string       `json:"openPrice"`
-	ClosePrice    string       `json:"closePrice"`
+	TimeInterval   TimeInterval `json:"timeInterval"`
+	BaseCurrency   Currency     `json:"baseCurrency"`
+	QuoteCurrency  Currency     `json:"quoteCurrency"`
+	QuotePrice     float64      `json:"quotePrice"`
+	QuoteAmount    float64      `json:"quoteAmount"`
+	TradeCount     float64      `json:"tradeCount"`
+	TradeAmountUSD float64      `json:"tradeAmountUSD"`
+	TradeVolume    float64      `json:"tradeVolume"`
+	MaxPrice       float64      `json:"maxPrice"`
+	MinPrice       float64      `json:"minPrice"`
+	OpenPrice      string       `json:"openPrice"`
+	ClosePrice     string       `json:"closePrice"`
 }
 
 type Overview struct {
