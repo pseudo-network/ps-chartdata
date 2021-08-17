@@ -20,10 +20,13 @@ type Date struct {
 }
 
 type Currency struct {
-	Name string `json:"name"`
+	Name    string `json:"name"`
+	Symbol  string `json:"symbol"`
+	Address string `json:"address"`
 }
 
 type TimeInterval struct {
+	Day    string `json:"day"`
 	Second string `json:"second"`
 }
 
@@ -47,13 +50,13 @@ type Subject struct {
 
 // transactions
 type Transaction struct {
-	Transaction  Hash               `json:"transaction"`
-	TimeInterval TimeIntervalSecond `json:"timeInterval"`
-	TradeAmount  float64            `json:"tradeAmount"`
-	BuyCurrency  BuyCurrency        `json:"buyCurrency"`
-	BuyAmount    float64            `json:"buyAmount"`
-	SellCurrency SellCurrency       `json:"sellCurrency"`
-	SellAmount   float64            `json:"sellAmount"`
+	Transaction  Hash         `json:"transaction"`
+	TimeInterval TimeInterval `json:"timeInterval"`
+	TradeAmount  float64      `json:"tradeAmount"`
+	BuyCurrency  BuyCurrency  `json:"buyCurrency"`
+	BuyAmount    float64      `json:"buyAmount"`
+	SellCurrency SellCurrency `json:"sellCurrency"`
+	SellAmount   float64      `json:"sellAmount"`
 }
 
 type BuyCurrency struct {
@@ -68,10 +71,6 @@ type Hash struct {
 	Hash string `json:"hash"`
 }
 
-type TimeIntervalSecond struct {
-	Second string `json:"second"`
-}
-
 type Block struct {
 	Height int `json:"height"`
 }
@@ -80,4 +79,29 @@ type Info struct {
 	Block       Block   `json:"block"`
 	TradeAmount float64 `json:"tradeAmount"`
 	QuotePrice  float64 `json:"quotePrice"`
+}
+
+type Summary struct {
+	DaySummaries []DaySummary `json:"daySummaries"`
+	OverViews    []Overview   `json:"overviews"`
+}
+
+type DaySummary struct {
+	TimeInterval  TimeInterval `json:"timeInterval"`
+	BaseCurrency  Currency     `json:"baseCurrency"`
+	QuoteCurrency Currency     `json:"quoteCurrency"`
+	QuotePrice    float64      `json:"quotePrice"`
+	QuoteAmount   float64      `json:"quoteAmount"`
+	TradeCount    float64      `json:"tradeCount"`
+	TradeVolume   float64      `json:"tradeVolume"`
+	MaxPrice      float64      `json:"maxPrice"`
+	MinPrice      float64      `json:"minPrice"`
+	OpenPrice     string       `json:"openPrice"`
+	ClosePrice    string       `json:"closePrice"`
+}
+
+type Overview struct {
+	Minted             float64 `json:"minted"`
+	Burned             float64 `json:"burned"`
+	UniqueWalletsCount int     `json:"uniqueWallets"`
 }

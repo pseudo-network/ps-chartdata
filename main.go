@@ -24,7 +24,7 @@ func main() {
 
 func initPublicRoutes(e *echo.Echo) {
 	e.GET("/cryptos", handler.GetCryptosHandler)
-	e.GET("/cryptos/:address/info", handler.GetCryptoInfoByAddressHandler)
+	e.GET("/cryptos/:address/day-summary", handler.GetCryptoDaySummaryByAddressHandler)
 	e.GET("/cryptos/:address/bars", handler.GetCryptoBarsHandler)
 	e.GET("/cryptos/:address/transactions", handler.GetCryptoTransactionsHandler)
 	e.GET("/wallets/:address/balances", handler.GetWalletBalancesByAddressHandler)

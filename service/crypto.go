@@ -232,49 +232,65 @@ func GetCryptoTransactionsByAddress(address string) ([]bitquery.Transaction, err
 	return dexTrades, nil
 }
 
-func GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 string) (*model.CryptoInfo, error) {
+func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 string) (*model.CryptoInfo, error) {
 
 	query := `{
 		ethereum(network: bsc) {
-			volume: dexTrades(
-				date: {since: "DATE_FROM", till: "DATE_TILL"}
-				baseCurrency: {is: "CURRENCY_BASE"}
+			daySummaries: dexTrades(
+				options: {limit: 1, desc: "timeInterval.day"}
+				date: {since:  "DATE_FROM"}
+				exchangeName: {in: ["Pancake", "Pancake v2"]}
+				any: [
+					{
+						baseCurrency: {is: "CURRENCY_BASE"}, 
+						quoteCurrency: {is: "CURRENCY_QUOTE"}
+					}
+				]
 			) {
-      	tradeAmount(in: USD)
-			}
-			begPrice: dexTrades(
-				date: {in: "DATE_FROM"}
-				baseCurrency: {is: "CURRENCY_BASE"}
-				quoteCurrency: {is: "CURRENCY_QUOTE"}
-			) {
+				timeInterval {
+					day(count: 1)
+				}
+				baseCurrency {
+					name
+					symbol
+					address
+				}
+				quoteCurrency {
+					name
+					symbol
+					address
+				}
 				quotePrice
+				quoteAmount
+				uniqueWallets: count(uniq: senders)
+				tradeCount: count
+				tradeValueUSD: tradeAmount(in: USD)
+				tradeVolume: baseAmount(calculate: sum)
+				volumeValue: quoteAmount(calculate: sum)
+				maxPrice: quotePrice(calculate: maximum)
+				minPrice: quotePrice(calculate: minimum)
+				openPrice: minimum(of: block, get: quote_price)
+				closePrice: maximum(of: block, get: quote_price)
 			}
-			currentPrice: dexTrades(
-				options: {desc: ["block.height"], limit: 1}
-        exchangeName: {in: ["Pancake", "Pancake v2"]}
-        baseCurrency: {is: "CURRENCY_BASE"}
-				quoteCurrency: {is: "CURRENCY_QUOTE"}
-				date: {after: "DATE_FROM"}
-			) {
-        block {
-          height
+			overviews: transfers(date: {since: null, till: null}, amount: {gt: 0}) {
+				minted: amount(
+					calculate: sum
+					sender: {is: "0x0000000000000000000000000000000000000000"}
+				)
+				burned: amount(
+					calculate: sum
+					receiver: {is: "0x000000000000000000000000000000000000dEaD"}
+				)
+				uniqueWallets: count(uniq: senders)
+				currency(currency: {is: "CURRENCY_BASE"}) {
+          symbol
+          name
+          tokenId
         }
-				quotePrice
 			}
 		}
-	}
-	`
+	}`
 
-	query = strings.ReplaceAll(
-		query,
-		DATE_FROM,
-		fromRFC3339,
-	)
-	query = strings.ReplaceAll(
-		query,
-		DATE_TILL,
-		toRFC3339,
-	)
 	query = strings.ReplaceAll(
 		query,
 		CURRENCY_BASE,
@@ -285,6 +301,11 @@ func GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 		CURRENCY_QUOTE,
 		quoteCurrency,
 	)
+	query = strings.ReplaceAll(
+		query,
+		DATE_FROM,
+		fromRFC3339,
+	)
 
 	fmt.Println(query)
 
@@ -293,15 +314,14 @@ func GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 		return nil, err
 	}
 
-	data := make(map[string]map[string]map[string][]bitquery.Info)
+	data := make(map[string]map[string]bitquery.Summary)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {
 		return nil, err
 	}
 
-	begPrice := data["data"]["ethereum"]["begPrice"][0].QuotePrice
-	curPrice := data["data"]["ethereum"]["currentPrice"][0].QuotePrice
-	volume := data["data"]["ethereum"]["volume"][0].TradeAmount
+	daySummary := data["data"]["ethereum"].DaySummaries[0]
+	overview := data["data"]["ethereum"].OverViews[0]
 
 	var usdMultiplier *float64
 	if quoteCurrency == WBNB_ADDRESS {
@@ -316,7 +336,29 @@ func GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 
 	fmt.Println(usdMultiplier)
 
-	cryptoInfo := model.NewCryptoInfo(begPrice, curPrice, volume, usdMultiplier)
+	openPrice, err := strconv.ParseFloat(daySummary.OpenPrice, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	closePrice, err := strconv.ParseFloat(daySummary.ClosePrice, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	cryptoInfo := model.NewCryptoInfo(
+		daySummary.QuotePrice,
+		daySummary.TradeVolume,
+		overview.Minted,
+		overview.Burned,
+		daySummary.TradeCount,
+		daySummary.MaxPrice,
+		daySummary.MinPrice,
+		openPrice,
+		closePrice,
+		overview.UniqueWalletsCount,
+		usdMultiplier,
+	)
 
 	return cryptoInfo, nil
 }

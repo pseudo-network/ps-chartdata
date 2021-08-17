@@ -19,27 +19,49 @@ func NewCrypto(name, address, symbol, tokenType, network string) *Crypto {
 }
 
 type CryptoInfo struct {
-	BeginningPrice    float64 `json:"beginning_price"`
-	BeginningPriceUSD float64 `json:"beginning_price_usd"`
-	CurrentPrice      float64 `json:"current_price"`
-	CurrentPriceUSD   float64 `json:"current_price_usd"`
-	VolumeUSD         float64 `json:"volume_usd"`
-	PercentChange     float64 `json:"percent_change"`
+	CurrentPrice       float64 `json:"current_price"`
+	CurrentPriceUSD    float64 `json:"current_price_usd"`
+	VolumeUSD          float64 `json:"volume_usd"`
+	Minted             float64 `json:"minted"`
+	Burned             float64 `json:"burned"`
+	UniqueWalletsCount int     `json:"uniqueWallets"`
+	TradeCount         float64 `json:"tradeCount"`
+	MaxPrice           float64 `json:"maxPrice"`
+	MinPrice           float64 `json:"minPrice"`
+	OpenPrice          float64 `json:"openPrice"`
+	ClosePrice         float64 `json:"closePrice"`
 }
 
-func NewCryptoInfo(beginningPrice, currentPrice, volume float64, usdMultiplier *float64) *CryptoInfo {
-	percentChange := ((beginningPrice - currentPrice) / beginningPrice) * 100
+func NewCryptoInfo(currentPrice,
+	volume,
+	minted,
+	burned,
+	tradeCount,
+	maxPrice,
+	minPrice,
+	openPrice,
+	closePrice float64,
+	uniqueWalletsCount int,
+	usdMultiplier *float64) *CryptoInfo {
 
 	info := &CryptoInfo{
-		BeginningPrice: beginningPrice,
-		CurrentPrice:   currentPrice,
-		VolumeUSD:      volume,
-		PercentChange:  percentChange,
+		CurrentPrice:       currentPrice,
+		VolumeUSD:          volume,
+		Minted:             minted,
+		Burned:             burned,
+		TradeCount:         tradeCount,
+		MaxPrice:           maxPrice,
+		MinPrice:           minPrice,
+		UniqueWalletsCount: uniqueWalletsCount,
 	}
 
 	if usdMultiplier != nil {
-		info.BeginningPriceUSD = info.BeginningPrice * *usdMultiplier
 		info.CurrentPriceUSD = info.CurrentPrice * *usdMultiplier
+		info.VolumeUSD = info.VolumeUSD / *usdMultiplier
+		info.MaxPrice = info.MaxPrice * *usdMultiplier
+		info.MinPrice = info.MinPrice * *usdMultiplier
+		info.OpenPrice = info.OpenPrice * *usdMultiplier
+		info.ClosePrice = info.ClosePrice * *usdMultiplier
 	}
 
 	return info

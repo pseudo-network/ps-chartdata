@@ -54,14 +54,13 @@ func GetCryptoTransactionsHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, dexTrades)
 }
 
-// GET/cryptos/:address/info
-func GetCryptoInfoByAddressHandler(c echo.Context) error {
+// GET/cryptos/:address/day-summary
+func GetCryptoDaySummaryByAddressHandler(c echo.Context) error {
 	baseCurrency := c.Param("address")
 	quoteCurrency := c.QueryParam("quote_currency")
 	fromRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
-	toRFC3339 := time.Now().Format(time.RFC3339)
 
-	info, err := service.GetCryptoInfoByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339)
+	info, err := service.GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}
