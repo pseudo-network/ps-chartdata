@@ -263,8 +263,8 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 				quotePrice
 				quoteAmount
 				uniqueWallets: count(uniq: senders)
+				tradeAmountUSD: tradeAmount(in:USD)
 				tradeCount: count
-				tradeValueUSD: tradeAmount(in: USD)
 				tradeVolume: baseAmount(calculate: sum)
 				volumeValue: quoteAmount(calculate: sum)
 				maxPrice: quotePrice(calculate: maximum)
@@ -352,6 +352,7 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 		overview.Minted,
 		overview.Burned,
 		daySummary.TradeCount,
+		daySummary.TradeAmountUSD,
 		daySummary.MaxPrice,
 		daySummary.MinPrice,
 		openPrice,

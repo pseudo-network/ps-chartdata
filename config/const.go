@@ -1,7 +1,7 @@
 package config
 
 const (
-	VERSION      = "0.0.24"
+	VERSION      = "0.0.25"
 	PORT         = 3444
 	SERVICE_NAME = "ps-chartdata"
 

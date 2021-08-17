@@ -21,15 +21,16 @@ func NewCrypto(name, address, symbol, tokenType, network string) *Crypto {
 type CryptoInfo struct {
 	CurrentPrice       float64 `json:"current_price"`
 	CurrentPriceUSD    float64 `json:"current_price_usd"`
-	VolumeUSD          float64 `json:"volume_usd"`
-	Minted             float64 `json:"minted"`
-	Burned             float64 `json:"burned"`
-	UniqueWalletsCount int     `json:"uniqueWallets"`
-	TradeCount         float64 `json:"tradeCount"`
-	MaxPrice           float64 `json:"maxPrice"`
-	MinPrice           float64 `json:"minPrice"`
-	OpenPrice          float64 `json:"openPrice"`
-	ClosePrice         float64 `json:"closePrice"`
+	MintedCount        float64 `json:"minted_count"`
+	BurnedCount        float64 `json:"burned_count"`
+	UniqueWalletsCount int     `json:"unique_wallets_count"`
+	TradeVolume        float64 `json:"trade_volume"`
+	TradeCount         float64 `json:"trade_count"`
+	TradeAmountUSD     float64 `json:"trade_amount_usd"`
+	MaxPrice           float64 `json:"max_price"`
+	MinPrice           float64 `json:"min_price"`
+	OpenPrice          float64 `json:"open_price"`
+	ClosePrice         float64 `json:"close_price"`
 }
 
 func NewCryptoInfo(currentPrice,
@@ -37,6 +38,7 @@ func NewCryptoInfo(currentPrice,
 	minted,
 	burned,
 	tradeCount,
+	tradeAmountUSD,
 	maxPrice,
 	minPrice,
 	openPrice,
@@ -46,18 +48,20 @@ func NewCryptoInfo(currentPrice,
 
 	info := &CryptoInfo{
 		CurrentPrice:       currentPrice,
-		VolumeUSD:          volume,
-		Minted:             minted,
-		Burned:             burned,
+		TradeVolume:        volume,
+		MintedCount:        minted,
+		BurnedCount:        burned,
 		TradeCount:         tradeCount,
+		TradeAmountUSD:     tradeAmountUSD,
 		MaxPrice:           maxPrice,
 		MinPrice:           minPrice,
+		OpenPrice:          openPrice,
+		ClosePrice:         closePrice,
 		UniqueWalletsCount: uniqueWalletsCount,
 	}
 
 	if usdMultiplier != nil {
 		info.CurrentPriceUSD = info.CurrentPrice * *usdMultiplier
-		info.VolumeUSD = info.VolumeUSD / *usdMultiplier
 		info.MaxPrice = info.MaxPrice * *usdMultiplier
 		info.MinPrice = info.MinPrice * *usdMultiplier
 		info.OpenPrice = info.OpenPrice * *usdMultiplier
