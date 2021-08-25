@@ -28,7 +28,7 @@ func GetWalletBalancesByAddress(address string) ([]model.Balance, error) {
 		address,
 	)
 
-	resp, err := bitquery.Query(query)
+	resp, err := bitquery.Query(query, nil)
 	if err != nil {
 		return nil, err
 	}

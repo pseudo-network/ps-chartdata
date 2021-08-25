@@ -12,10 +12,11 @@ const (
 	BITQUERY_URL = "https://graphql.bitquery.io"
 )
 
-func Query(query string) ([]byte, error) {
+func Query(query string, vars *map[string]interface{}) ([]byte, error) {
 
-	reqBody, err := json.Marshal(map[string]string{
-		"query": query,
+	reqBody, err := json.Marshal(map[string]interface{}{
+		"query":     query,
+		"variables": vars,
 	})
 
 	b := bytes.NewBuffer(reqBody)

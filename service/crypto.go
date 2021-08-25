@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 string) ([]model.Bar, error) {
+func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int) ([]model.Bar, error) {
 
 	var usdMultiplier *float64
 	if quoteCurrency == WBNB_ADDRESS {
@@ -24,54 +24,85 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 	}
 
 	query := `
-		{
+		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime, $till: ISO8601DateTime, $interval: Int) {
 			ethereum(network: bsc) {
-				dexTrades(
-					options: {asc: "timeInterval.second"}
-					exchangeName: {in: ["Pancake", "Pancake v2"]}
-					date: {since: "DATE_FROM", till: "DATE_TILL"}
-					baseCurrency: {is: "CURRENCY_BASE"},
-					quoteCurrency: {is: "CURRENCY_QUOTE"},
-					tradeAmountUsd: {gt: 10}
-				)
-				{
-					timeInterval {
-						second(count: 60, format: "%Y-%m-%dT%H:%M:%SZ")
-					}
-					tradeAmount(in:USD)
-	       		trades:count
-					volume: quoteAmount
-					high: quotePrice(calculate: maximum)
-					low: quotePrice(calculate: minimum)
-					open: minimum(of: block, get: quote_price)
-					close: maximum(of: block, get: quote_price)
+			dexTrades(
+				options: {asc: "timeInterval.minute"}
+				date: {since: $since, till: $till}
+				exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"}
+				baseCurrency: {is: $baseCurrency},
+				quoteCurrency: {is: $quoteCurrency},
+				tradeAmountUsd: {gt: 10}
+			) 
+			{
+				timeInterval {
+					minute(count: $interval, format: "%Y-%m-%dT%H:%M:%SZ")  
 				}
+				volume: quoteAmount
+				high: quotePrice(calculate: maximum)
+				low: quotePrice(calculate: minimum)
+				open: minimum(of: block, get: quote_price)
+				close: maximum(of: block, get: quote_price) 
 			}
 		}
+	}
 	`
 
-	query = strings.ReplaceAll(
-		query,
-		DATE_FROM,
-		fromRFC3339,
-	)
-	query = strings.ReplaceAll(
-		query,
-		DATE_TILL,
-		toRFC3339,
-	)
-	query = strings.ReplaceAll(
-		query,
-		CURRENCY_QUOTE,
-		quoteCurrency,
-	)
-	query = strings.ReplaceAll(
-		query,
-		CURRENCY_BASE,
-		baseCurrency,
-	)
+	// query := `
+	// {
+	// 	ethereum(network: bsc) {
+	// 	  dexTrades(
+	// 		options: {asc: "timeInterval.minute"}
+	// 		date: {since: "2021-06-20T07:23:21.000Z", till: "2021-06-23T15:23:21.000Z"}
+	// 		exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"}
+	// 		baseCurrency: {is: "0x2170ed0880ac9a755fd29b2688956bd959f933f8"},
+	// 		quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"},
+	// 		tradeAmountUsd: {gt: 10}
+	// 	  )
+	// 	  {
+	// 		timeInterval {
+	// 		  minute(count: 15, format: "%Y-%m-%dT%H:%M:%SZ")
+	// 		}
+	// 		volume: quoteAmount
+	// 		high: quotePrice(calculate: maximum)
+	// 		low: quotePrice(calculate: minimum)
+	// 		open: minimum(of: block, get: quote_price)
+	// 		close: maximum(of: block, get: quote_price)
+	// 	  }
+	// 	}
+	//   }`
 
-	resp, err := bitquery.Query(query)
+	// query = strings.ReplaceAll(
+	// 	query,
+	// 	DATE_FROM,
+	// 	sinceRFC3339,
+	// )
+	// query = strings.ReplaceAll(
+	// 	query,
+	// 	DATE_TILL,
+	// 	tillRFC3339,
+	// )
+	// query = strings.ReplaceAll(
+	// 	query,
+	// 	CURRENCY_QUOTE,
+	// 	quoteCurrency,
+	// )
+	// query = strings.ReplaceAll(
+	// 	query,
+	// 	CURRENCY_BASE,
+	// 	baseCurrency,
+	// )
+
+	fmt.Println(query)
+
+	vars := make(map[string]interface{})
+	vars["baseCurrency"] = baseCurrency
+	vars["quoteCurrency"] = quoteCurrency
+	vars["since"] = sinceRFC3339
+	vars["till"] = tillRFC3339
+	vars["interval"] = interval
+
+	resp, err := bitquery.Query(query, &vars)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +115,13 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
+	fmt.Println(dexTrades)
+
 	var bars []model.Bar
 	for _, t := range dexTrades {
 		bar := model.Bar{}
 
-		dateTime, err := time.Parse("2006-01-02T15:04:00Z", t.TimeInterval.Second)
+		dateTime, err := time.Parse("2006-01-02T15:04:00Z", t.TimeInterval.Minute)
 		if err != nil {
 			continue
 		}
@@ -110,14 +143,15 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339 
 		}
 		bar.Close = close
 
-		bar.Volume = t.TradeAmount
+		bar.Median = t.Median
+
+		bar.Volume = t.Volume
 
 		if usdMultiplier != nil {
 			bar.Open = bar.Open * *usdMultiplier
 			bar.High = bar.High * *usdMultiplier
 			bar.Low = bar.Low * *usdMultiplier
 			bar.Close = bar.Close * *usdMultiplier
-			bar.Volume = bar.Volume * *usdMultiplier
 		}
 
 		bars = append(bars, bar)
@@ -162,7 +196,7 @@ func GetCryptos(searchQuery string) ([]model.Crypto, error) {
 		searchQuery,
 	)
 
-	resp, err := bitquery.Query(query)
+	resp, err := bitquery.Query(query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +250,7 @@ func GetCryptoTransactionsByAddress(address string) ([]bitquery.Transaction, err
 		address,
 	)
 
-	resp, err := bitquery.Query(query)
+	resp, err := bitquery.Query(query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +266,7 @@ func GetCryptoTransactionsByAddress(address string) ([]bitquery.Transaction, err
 	return dexTrades, nil
 }
 
-func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 string) (*model.CryptoInfo, error) {
+func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339 string) (*model.CryptoInfo, error) {
 
 	query := `{
 		ethereum(network: bsc) {
@@ -272,24 +306,27 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 				openPrice: minimum(of: block, get: quote_price)
 				closePrice: maximum(of: block, get: quote_price)
 			}
-			overviews: transfers(date: {since: null, till: null}, amount: {gt: 0}) {
-				minted: amount(
-					calculate: sum
-					sender: {is: "0x0000000000000000000000000000000000000000"}
-				)
-				burned: amount(
-					calculate: sum
-					receiver: {is: "0x000000000000000000000000000000000000dEaD"}
-				)
-				uniqueWallets: count(uniq: senders)
-				currency(currency: {is: "CURRENCY_BASE"}) {
-          symbol
-          name
-          tokenId
-        }
-			}
 		}
 	}`
+
+	/*
+			overviews: transfers(date: {since: null, till: null}, amount: {gt: 0}) {
+			minted: amount(
+				calculate: sum
+				sender: {is: "0x0000000000000000000000000000000000000000"}
+			)
+			burned: amount(
+				calculate: sum
+				receiver: {is: "0x000000000000000000000000000000000000dEaD"}
+			)
+			uniqueWallets: count(uniq: senders)
+			currency(currency: {is: "CURRENCY_BASE"}) {
+				symbol
+				name
+				tokenId
+			}
+		}
+	*/
 
 	query = strings.ReplaceAll(
 		query,
@@ -304,12 +341,12 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 	query = strings.ReplaceAll(
 		query,
 		DATE_FROM,
-		fromRFC3339,
+		sinceRFC3339,
 	)
 
 	fmt.Println(query)
 
-	resp, err := bitquery.Query(query)
+	resp, err := bitquery.Query(query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +358,7 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 	}
 
 	daySummary := data["data"]["ethereum"].DaySummaries[0]
-	overview := data["data"]["ethereum"].OverViews[0]
+	// overview := data["data"]["ethereum"].OverViews[0]
 
 	var usdMultiplier *float64
 	if quoteCurrency == WBNB_ADDRESS {
@@ -349,15 +386,15 @@ func GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339 strin
 	cryptoInfo := model.NewCryptoInfo(
 		daySummary.QuotePrice,
 		daySummary.TradeVolume,
-		overview.Minted,
-		overview.Burned,
+		// overview.Minted,
+		// overview.Burned,
 		daySummary.TradeCount,
 		daySummary.TradeAmountUSD,
 		daySummary.MaxPrice,
 		daySummary.MinPrice,
 		openPrice,
 		closePrice,
-		overview.UniqueWalletsCount,
+		// overview.UniqueWalletsCount,
 		usdMultiplier,
 	)
 

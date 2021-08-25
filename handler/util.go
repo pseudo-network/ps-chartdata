@@ -16,10 +16,10 @@ func replaceAtIndex(in string, r rune, i int) string {
 }
 
 func unixStringToRFC3339String(date string) (string, error) {
-	fromDateUInt, err := strconv.ParseUint(string(date), 10, 64)
+	sinceDateUInt, err := strconv.ParseUint(string(date), 10, 64)
 	if err != nil {
 		return "", err
 	}
-	fromDateString := time.Unix(int64(fromDateUInt), int64(0)).UTC().Format(time.RFC3339)
-	return fromDateString, nil
+	sinceDateString := time.Unix(int64(sinceDateUInt), int64(0)).UTC().Format(time.RFC3339)
+	return sinceDateString, nil
 }

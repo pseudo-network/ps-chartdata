@@ -9,7 +9,7 @@ import (
 )
 
 func GetBNBInfo() (*model.CryptoInfo, error) {
-	fromRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
+	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
 
 	query := `{
 		ethereum(network: bsc) {
@@ -42,10 +42,10 @@ func GetBNBInfo() (*model.CryptoInfo, error) {
 	query = strings.ReplaceAll(
 		query,
 		DATE_FROM,
-		fromRFC3339,
+		sinceRFC3339,
 	)
 
-	resp, err := bitquery.Query(query)
+	resp, err := bitquery.Query(query, nil)
 	if err != nil {
 		return nil, err
 	}

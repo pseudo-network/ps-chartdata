@@ -7,12 +7,12 @@ type DexTrade struct {
 	Low          float64      `json:"low"`
 	Open         string       `json:"open"`
 	Close        string       `json:"close"`
-	// BaseCurrency  Currency     `json:"baseCurrency"`
-	// QuoteCurrency Currency     `json:"quoteCurrency"`
-	Date        Date    `json:"date"`
-	Trades      int     `json:"trades"`
-	TradeAmount float64 `json:"tradeAmount"`
-	UnixTimeMS  int64   `json:"unixTimeMS"`
+	Median       float64      `json:"median"`
+	Date         Date         `json:"date"`
+	Trades       int          `json:"trades"`
+	Volume       float64      `json:"volume"`
+	TradeAmount  float64      `json:"tradeAmount"`
+	UnixTimeMS   int64        `json:"unixTimeMS"`
 }
 
 type Date struct {
@@ -28,6 +28,7 @@ type Currency struct {
 type TimeInterval struct {
 	Day    string `json:"day"`
 	Second string `json:"second"`
+	Minute string `json:"minute"`
 }
 
 type Crypto struct {
@@ -83,7 +84,7 @@ type Info struct {
 
 type Summary struct {
 	DaySummaries []DaySummary `json:"daySummaries"`
-	OverViews    []Overview   `json:"overviews"`
+	// OverViews    []Overview   `json:"overviews"`
 }
 
 type DaySummary struct {
