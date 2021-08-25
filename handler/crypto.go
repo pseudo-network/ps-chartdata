@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"ps-chartdata/service"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo"
@@ -12,20 +13,32 @@ import (
 func GetCryptoBarsHandler(c echo.Context) error {
 	baseCurrency := c.Param("address")
 	quoteCurrency := c.QueryParam("quote_currency")
-	from := c.QueryParam("from")
-	to := c.QueryParam("to")
+	since := c.QueryParam("since")
+	till := c.QueryParam("till")
+	interval := c.QueryParam("interval")
+	limit := c.QueryParam("limit")
 
-	fromRFC3339, err := unixStringToRFC3339String(from)
+	sinceRFC3339, err := unixStringToRFC3339String(since)
+	if err != nil {
+		sinceRFC3339 = ""
+	}
+
+	tillRFC3339, err := unixStringToRFC3339String(till)
+	if err != nil {
+		tillRFC3339 = ""
+	}
+
+	intervalInt, err := strconv.Atoi(interval)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}
 
-	toRFC3339, err := unixStringToRFC3339String(to)
+	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}
 
-	bars, err := service.GetCryptoBarsByAddress(baseCurrency, quoteCurrency, fromRFC3339, toRFC3339)
+	bars, err := service.GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339, intervalInt, limitInt)
 
 	return c.JSON(http.StatusOK, bars)
 }
@@ -58,9 +71,9 @@ func GetCryptoTransactionsHandler(c echo.Context) error {
 func GetCryptoDaySummaryByAddressHandler(c echo.Context) error {
 	baseCurrency := c.Param("address")
 	quoteCurrency := c.QueryParam("quote_currency")
-	fromRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
+	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
 
-	info, err := service.GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, fromRFC3339)
+	info, err := service.GetCryptoDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}

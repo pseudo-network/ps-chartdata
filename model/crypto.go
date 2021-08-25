@@ -35,29 +35,29 @@ type CryptoInfo struct {
 
 func NewCryptoInfo(currentPrice,
 	volume,
-	minted,
-	burned,
+	// minted,
+	// burned,
 	tradeCount,
 	tradeAmountUSD,
 	maxPrice,
 	minPrice,
 	openPrice,
 	closePrice float64,
-	uniqueWalletsCount int,
+	// uniqueWalletsCount int,
 	usdMultiplier *float64) *CryptoInfo {
 
 	info := &CryptoInfo{
-		CurrentPrice:       currentPrice,
-		TradeVolume:        volume,
-		MintedCount:        minted,
-		BurnedCount:        burned,
-		TradeCount:         tradeCount,
-		TradeAmountUSD:     tradeAmountUSD,
-		MaxPrice:           maxPrice,
-		MinPrice:           minPrice,
-		OpenPrice:          openPrice,
-		ClosePrice:         closePrice,
-		UniqueWalletsCount: uniqueWalletsCount,
+		CurrentPrice: currentPrice,
+		TradeVolume:  volume,
+		// MintedCount:        minted,
+		// BurnedCount:        burned,
+		TradeCount:     tradeCount,
+		TradeAmountUSD: tradeAmountUSD,
+		MaxPrice:       maxPrice,
+		MinPrice:       minPrice,
+		OpenPrice:      openPrice,
+		ClosePrice:     closePrice,
+		// UniqueWalletsCount: uniqueWalletsCount,
 	}
 
 	if usdMultiplier != nil {
@@ -78,4 +78,5 @@ type Bar struct {
 	Close  float64 `json:"close"`
 	Volume float64 `json:"volume"`
 	Time   int64   `json:"time"`
+	Median float64 `json:"median"`
 }
