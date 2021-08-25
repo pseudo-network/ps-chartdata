@@ -21,13 +21,11 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	sinceRFC3339, err := unixStringToRFC3339String(since)
 	if err != nil {
 		sinceRFC3339 = ""
-		// c.Logger().Error(err.Error())
 	}
 
 	tillRFC3339, err := unixStringToRFC3339String(till)
 	if err != nil {
 		tillRFC3339 = ""
-		// c.Logger().Error(err.Error())
 	}
 
 	intervalInt, err := strconv.Atoi(interval)
