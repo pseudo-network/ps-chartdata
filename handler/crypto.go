@@ -16,7 +16,7 @@ func GetCryptoBarsHandler(c echo.Context) error {
 	since := c.QueryParam("since")
 	till := c.QueryParam("till")
 	interval := c.QueryParam("interval")
-	// limit := c.QueryParam("limit")
+	limit := c.QueryParam("limit")
 
 	sinceRFC3339, err := unixStringToRFC3339String(since)
 	if err != nil {
@@ -35,12 +35,12 @@ func GetCryptoBarsHandler(c echo.Context) error {
 		c.Logger().Error(err.Error())
 	}
 
-	// limitInt, err := strconv.Atoi(limit)
-	// if err != nil {
-	// 	c.Logger().Error(err.Error())
-	// }
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		c.Logger().Error(err.Error())
+	}
 
-	bars, err := service.GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339, intervalInt, 0)
+	bars, err := service.GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339, intervalInt, limitInt)
 
 	return c.JSON(http.StatusOK, bars)
 }

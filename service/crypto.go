@@ -24,10 +24,10 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC33
 	}
 
 	query := `
-		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime, $till: ISO8601DateTime, $interval: Int) {
+		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime, $till: ISO8601DateTime, $interval: Int, $limit: Int) {
 			ethereum(network: bsc) {
 			dexTrades(
-				options: {asc: "timeInterval.minute"}
+				options: {limit: $limit, desc: "timeInterval.minute"}
 				date: {since: $since, till: $till}
 				exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"}
 				baseCurrency: {is: $baseCurrency},
@@ -112,7 +112,7 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC33
 	}
 
 	vars["interval"] = interval
-	// vars["limit"] = limit
+	vars["limit"] = limit
 
 	fmt.Println("till", tillRFC3339)
 
