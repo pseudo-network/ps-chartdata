@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int) ([]model.Bar, error) {
+func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int, limit int) ([]model.Bar, error) {
 
 	var usdMultiplier *float64
 	if quoteCurrency == WBNB_ADDRESS {
@@ -98,9 +98,23 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC33
 	vars := make(map[string]interface{})
 	vars["baseCurrency"] = baseCurrency
 	vars["quoteCurrency"] = quoteCurrency
-	vars["since"] = sinceRFC3339
-	vars["till"] = tillRFC3339
+
+	if sinceRFC3339 == "" {
+		vars["since"] = nil
+	} else {
+		vars["since"] = sinceRFC3339
+	}
+
+	if tillRFC3339 == "" {
+		vars["till"] = nil
+	} else {
+		vars["till"] = tillRFC3339
+	}
+
 	vars["interval"] = interval
+	// vars["limit"] = limit
+
+	fmt.Println("till", tillRFC3339)
 
 	resp, err := bitquery.Query(query, &vars)
 	if err != nil {
@@ -115,7 +129,7 @@ func GetCryptoBarsByAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC33
 
 	dexTrades := data["data"]["ethereum"]["dexTrades"]
 
-	fmt.Println(dexTrades)
+	// fmt.Println(dexTrades)
 
 	var bars []model.Bar
 	for _, t := range dexTrades {
