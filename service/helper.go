@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func GetBNBInfo() (*model.CryptoInfo, error) {
+func GetBNBInfo() (*model.TokenInfo, error) {
 	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
 
 	query := `{
@@ -56,8 +56,8 @@ func GetBNBInfo() (*model.CryptoInfo, error) {
 		return nil, err
 	}
 
-	var curPrice *model.CryptoInfo
-	curPrice = &model.CryptoInfo{
+	var curPrice *model.TokenInfo
+	curPrice = &model.TokenInfo{
 		CurrentPrice: data["data"]["ethereum"]["currentPrice"][0].QuotePrice,
 	}
 

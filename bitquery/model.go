@@ -31,7 +31,7 @@ type TimeInterval struct {
 	Minute string `json:"minute"`
 }
 
-type Crypto struct {
+type Token struct {
 	Network Network `json:"network"`
 	Subject Subject `json:"subject"`
 }

@@ -12,6 +12,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/valyala/fasttemplate v1.2.0 // indirect
+	go.mongodb.org/mongo-driver v1.7.2
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
 	google.golang.org/api v0.37.0 // indirect
 )
