@@ -10,18 +10,77 @@ import (
 	"time"
 )
 
-func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int, limit int, chainName string) ([]model.Bar, error) {
-	var usdMultiplier *float64
-	// todo: cleanup
-	if quoteCurrency == WBNB_ADDRESS {
-		bnbUSD, err := GetBNBInfo()
-		if err != nil {
-			return nil, err
+func GetTokenPrice(baseCurrency, quoteCurrency, chainName string) (*model.TokenInfo, error) {
+	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
+	fmt.Println(sinceRFC3339)
+
+	query := `
+		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime){
+			ethereum(network: bsc) {
+				currentPrice: dexTrades(
+					options: {desc: ["block.height"], limit: 1}
+					baseCurrency: {is: $baseCurrency}
+					quoteCurrency: {is: $quoteCurrency}
+					date: {after: $since}
+				) {
+					block {
+						height
+					}
+					quotePrice
+				}
+			}
 		}
-		usdMultiplier = &bnbUSD.CurrentPrice
-	} else {
-		usdMultiplier = nil
+	`
+	query = strings.ReplaceAll(
+		query,
+		CHAIN_NAME,
+		chainName,
+	)
+
+	vars := make(map[string]interface{})
+	vars["baseCurrency"] = baseCurrency
+	vars["quoteCurrency"] = quoteCurrency
+	vars["since"] = sinceRFC3339
+
+	resp, err := bitquery.Query(query, &vars)
+	if err != nil {
+		return nil, err
 	}
+
+	data := make(map[string]map[string]map[string][]bitquery.Info)
+	err = json.Unmarshal(resp, &data)
+	if err != nil {
+		return nil, err
+	}
+
+	var curPrice *model.TokenInfo
+	curPrice = &model.TokenInfo{
+		CurrentPrice: data["data"]["ethereum"]["currentPrice"][0].QuotePrice,
+	}
+
+	fmt.Println(curPrice)
+
+	return curPrice, nil
+}
+
+func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int, limit int, chainName string) ([]model.Bar, error) {
+	// todo: cleanup
+	var nativeCurrency string
+	var usdCurrency string
+	if chainName == "bsc" {
+		nativeCurrency = WBNB_ADDRESS
+		usdCurrency = BUSD_ADDRESS
+	}
+	if chainName == "ethereum" {
+		nativeCurrency = WETH_ADDRESS
+		usdCurrency = USDC_ADDRESS
+	}
+
+	info, err := GetTokenPrice(nativeCurrency, usdCurrency, chainName)
+	if err != nil {
+		return nil, err
+	}
+	usdMultiplier := info.CurrentPrice
 
 	query := `
 		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime, $till: ISO8601DateTime, $interval: Int, $limit: Int) {
@@ -29,7 +88,6 @@ func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC333
 			dexTrades(
 				options: {limit: $limit, desc: "timeInterval.minute"}
 				date: {since: $since, till: $till}
-				exchangeAddress: {is: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"}
 				baseCurrency: {is: $baseCurrency},
 				quoteCurrency: {is: $quoteCurrency},
 				tradeAmountUsd: {gt: 10}
@@ -116,15 +174,15 @@ func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC333
 
 		bar.Volume = t.Volume
 
-		if usdMultiplier != nil {
-			bar.Open = bar.Open * *usdMultiplier
-			bar.High = bar.High * *usdMultiplier
-			bar.Low = bar.Low * *usdMultiplier
-			bar.Close = bar.Close * *usdMultiplier
-		}
+		bar.Open = bar.Open * usdMultiplier
+		bar.High = bar.High * usdMultiplier
+		bar.Low = bar.Low * usdMultiplier
+		bar.Close = bar.Close * usdMultiplier
 
 		bars = append(bars, bar)
 	}
+
+	fmt.Println(bars)
 
 	return bars, nil
 }
@@ -249,7 +307,6 @@ func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chai
 				daySummaries: dexTrades(
 					options: {limit: 1, desc: "timeInterval.day"}
 					date: {since:  $since}
-					exchangeName: {in: ["Pancake", "Pancake v2"]}
 					any: [
 						{
 							baseCurrency: {is: $baseCurrency}, 
@@ -310,18 +367,11 @@ func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chai
 	daySummary := data["data"]["ethereum"].DaySummaries[0]
 	// overview := data["data"]["ethereum"].OverViews[0]
 
-	var usdMultiplier *float64
-	if quoteCurrency == WBNB_ADDRESS {
-		bnbUSD, err := GetBNBInfo()
-		if err != nil {
-			return nil, err
-		}
-		usdMultiplier = &bnbUSD.CurrentPrice
-	} else {
-		usdMultiplier = nil
+	info, err := GetTokenPrice(baseCurrency, quoteCurrency, chainName)
+	if err != nil {
+		return nil, err
 	}
-
-	fmt.Println(usdMultiplier)
+	usdMultiplier := info.CurrentPrice
 
 	openPrice, err := strconv.ParseFloat(daySummary.OpenPrice, 64)
 	if err != nil {

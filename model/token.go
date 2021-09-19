@@ -44,7 +44,7 @@ func NewTokenInfo(currentPrice,
 	openPrice,
 	closePrice float64,
 	// uniqueWalletsCount int,
-	usdMultiplier *float64) *TokenInfo {
+	usdMultiplier float64) *TokenInfo {
 
 	info := &TokenInfo{
 		CurrentPrice: currentPrice,
@@ -60,13 +60,12 @@ func NewTokenInfo(currentPrice,
 		// UniqueWalletsCount: uniqueWalletsCount,
 	}
 
-	if usdMultiplier != nil {
-		info.CurrentPriceUSD = info.CurrentPrice * *usdMultiplier
-		info.MaxPrice = info.MaxPrice * *usdMultiplier
-		info.MinPrice = info.MinPrice * *usdMultiplier
-		info.OpenPrice = info.OpenPrice * *usdMultiplier
-		info.ClosePrice = info.ClosePrice * *usdMultiplier
-	}
+	// todo: cleanup
+	info.CurrentPriceUSD = info.CurrentPrice * usdMultiplier
+	info.MaxPrice = info.MaxPrice * usdMultiplier
+	info.MinPrice = info.MinPrice * usdMultiplier
+	info.OpenPrice = info.OpenPrice * usdMultiplier
+	info.ClosePrice = info.ClosePrice * usdMultiplier
 
 	return info
 }
