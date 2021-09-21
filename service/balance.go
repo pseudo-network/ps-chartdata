@@ -7,10 +7,11 @@ import (
 	"strings"
 )
 
-func GetWalletBalancesByAddress(address string) ([]model.Balance, error) {
-	query := `{
+func GetBalancesByAddress(address string, chain model.Chain) ([]model.Balance, error) {
+	query := `
+	query ($address: String!) {
 		ethereum(network: bsc) {
-			address(address: {is: "WALLET_ADDRESS"}) {
+			address(address: {is: $address}) {
 				balances {
 					currency {
 						symbol
@@ -24,15 +25,17 @@ func GetWalletBalancesByAddress(address string) ([]model.Balance, error) {
 	`
 	query = strings.ReplaceAll(
 		query,
-		WALLET_ADDRESS,
-		address,
+		CHAIN_NAME,
+		chain.Name,
 	)
 
-	resp, err := bitquery.Query(query, nil)
+	vars := make(map[string]interface{})
+	vars["address"] = address
+
+	resp, err := bitquery.Query(query, &vars)
 	if err != nil {
 		return nil, err
 	}
-
 	data := make(map[string]map[string]map[string][]map[string][]model.Balance)
 	err = json.Unmarshal(resp, &data)
 	if err != nil {

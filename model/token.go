@@ -1,15 +1,15 @@
 package model
 
-type Crypto struct {
+type Token struct {
 	Name      string `json:"name"`
 	Address   string `json:"address"`
 	Symbol    string `json:"symbol"`
-	TokenType string `json:"token_type"`
-	Network   string `json:"network"`
+	TokenType string `json:"token_type,omitempty"`
+	Network   string `json:"network,omitempty"`
 }
 
-func NewCrypto(name, address, symbol, tokenType, network string) *Crypto {
-	return &Crypto{
+func NewToken(name, address, symbol, tokenType, network string) *Token {
+	return &Token{
 		Name:      name,
 		Address:   address,
 		Symbol:    symbol,
@@ -18,7 +18,7 @@ func NewCrypto(name, address, symbol, tokenType, network string) *Crypto {
 	}
 }
 
-type CryptoInfo struct {
+type TokenInfo struct {
 	CurrentPrice       float64 `json:"current_price"`
 	CurrentPriceUSD    float64 `json:"current_price_usd"`
 	MintedCount        float64 `json:"minted_count"`
@@ -33,7 +33,7 @@ type CryptoInfo struct {
 	ClosePrice         float64 `json:"close_price"`
 }
 
-func NewCryptoInfo(currentPrice,
+func NewTokenInfo(currentPrice,
 	volume,
 	// minted,
 	// burned,
@@ -44,9 +44,9 @@ func NewCryptoInfo(currentPrice,
 	openPrice,
 	closePrice float64,
 	// uniqueWalletsCount int,
-	usdMultiplier *float64) *CryptoInfo {
+	usdMultiplier float64) *TokenInfo {
 
-	info := &CryptoInfo{
+	info := &TokenInfo{
 		CurrentPrice: currentPrice,
 		TradeVolume:  volume,
 		// MintedCount:        minted,
@@ -60,13 +60,12 @@ func NewCryptoInfo(currentPrice,
 		// UniqueWalletsCount: uniqueWalletsCount,
 	}
 
-	if usdMultiplier != nil {
-		info.CurrentPriceUSD = info.CurrentPrice * *usdMultiplier
-		info.MaxPrice = info.MaxPrice * *usdMultiplier
-		info.MinPrice = info.MinPrice * *usdMultiplier
-		info.OpenPrice = info.OpenPrice * *usdMultiplier
-		info.ClosePrice = info.ClosePrice * *usdMultiplier
-	}
+	// todo: cleanup
+	info.CurrentPriceUSD = info.CurrentPrice * usdMultiplier
+	info.MaxPrice = info.MaxPrice * usdMultiplier
+	info.MinPrice = info.MinPrice * usdMultiplier
+	info.OpenPrice = info.OpenPrice * usdMultiplier
+	info.ClosePrice = info.ClosePrice * usdMultiplier
 
 	return info
 }
