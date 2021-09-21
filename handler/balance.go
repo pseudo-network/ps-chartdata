@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"ps-chartdata/model"
 	"ps-chartdata/service"
+	"strconv"
 
 	"github.com/labstack/echo"
 )
@@ -13,12 +14,17 @@ func GetBalancesByAddressHandler(c echo.Context) error {
 	chainID := c.Param("id")
 	address := c.Param("address")
 
-	chain, err := model.GetChainByID(chainID)
+	chainIDInt, err := strconv.Atoi(chainID)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}
 
-	balances, err := service.GetBalancesByAddress(address, chain)
+	chain, err := model.GetChainByID(chainIDInt)
+	if err != nil {
+		c.Logger().Error(err.Error())
+	}
+
+	balances, err := service.GetBalancesByAddress(address, *chain)
 	if err != nil {
 		c.Logger().Error(err.Error())
 	}

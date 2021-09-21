@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func GetBalancesByAddress(address, chainName string) ([]model.Balance, error) {
+func GetBalancesByAddress(address string, chain model.Chain) ([]model.Balance, error) {
 	query := `
 	query ($address: String!) {
 		ethereum(network: bsc) {
@@ -26,7 +26,7 @@ func GetBalancesByAddress(address, chainName string) ([]model.Balance, error) {
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.Name,
 	)
 
 	vars := make(map[string]interface{})

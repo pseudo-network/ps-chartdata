@@ -10,13 +10,12 @@ import (
 	"time"
 )
 
-func GetTokenPrice(baseCurrency, quoteCurrency, chainName string) (*model.TokenInfo, error) {
-	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
-	fmt.Println(sinceRFC3339)
+// NOTICE: removed exchange name and exchange address
 
+func GetTokenInfo(baseTokenAddress, quoteTokenAddress string, chain model.Chain) (*model.TokenInfo, error) {
 	query := `
 		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime){
-			ethereum(network: bsc) {
+			ethereum(network: CHAIN_NAME) {
 				currentPrice: dexTrades(
 					options: {desc: ["block.height"], limit: 1}
 					baseCurrency: {is: $baseCurrency}
@@ -34,12 +33,14 @@ func GetTokenPrice(baseCurrency, quoteCurrency, chainName string) (*model.TokenI
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.BitqueryName,
 	)
 
+	sinceRFC3339 := time.Now().AddDate(0, 0, -1).Format(time.RFC3339)
+
 	vars := make(map[string]interface{})
-	vars["baseCurrency"] = baseCurrency
-	vars["quoteCurrency"] = quoteCurrency
+	vars["baseCurrency"] = baseTokenAddress
+	vars["quoteCurrency"] = quoteTokenAddress
 	vars["since"] = sinceRFC3339
 
 	resp, err := bitquery.Query(query, &vars)
@@ -63,24 +64,14 @@ func GetTokenPrice(baseCurrency, quoteCurrency, chainName string) (*model.TokenI
 	return curPrice, nil
 }
 
-func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC3339 string, interval int, limit int, chainName string) ([]model.Bar, error) {
-	// todo: cleanup
-	var nativeCurrency string
-	var usdCurrency string
-	if chainName == "bsc" {
-		nativeCurrency = WBNB_ADDRESS
-		usdCurrency = BUSD_ADDRESS
-	}
-	if chainName == "ethereum" {
-		nativeCurrency = WETH_ADDRESS
-		usdCurrency = USDC_ADDRESS
-	}
-
-	info, err := GetTokenPrice(nativeCurrency, usdCurrency, chainName)
+func GetBarsByTokenAddress(baseTokenAddress, sinceRFC3339, tillRFC3339 string, interval int, limit int, chain model.Chain) ([]model.Bar, error) {
+	quoteTokenInfo, err := GetTokenInfo(chain.NativeToken.Address, chain.USDToken.Address, chain)
 	if err != nil {
 		return nil, err
 	}
-	usdMultiplier := info.CurrentPrice
+	usdMultiplier := quoteTokenInfo.CurrentPrice
+
+	fmt.Println(usdMultiplier)
 
 	query := `
 		query ($baseCurrency: String!, $quoteCurrency: String!, $since: ISO8601DateTime, $till: ISO8601DateTime, $interval: Int, $limit: Int) {
@@ -107,12 +98,12 @@ func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC333
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.BitqueryName,
 	)
 
 	vars := make(map[string]interface{})
-	vars["baseCurrency"] = baseCurrency
-	vars["quoteCurrency"] = quoteCurrency
+	vars["baseCurrency"] = baseTokenAddress
+	vars["quoteCurrency"] = chain.NativeToken.Address
 
 	if sinceRFC3339 == "" {
 		vars["since"] = nil
@@ -187,7 +178,7 @@ func GetBarsByTokenAddress(baseCurrency, quoteCurrency, sinceRFC3339, tillRFC333
 	return bars, nil
 }
 
-func GetTokens(searchQuery string, chainName string) ([]model.Token, error) {
+func GetTokens(searchQuery string, chain model.Chain) ([]model.Token, error) {
 	query := `
 		query ($searchQuery: String!) {
 			search(string: $searchQuery, network: CHAIN_NAME){
@@ -220,7 +211,7 @@ func GetTokens(searchQuery string, chainName string) ([]model.Token, error) {
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.BitqueryName,
 	)
 
 	vars := make(map[string]interface{})
@@ -246,7 +237,7 @@ func GetTokens(searchQuery string, chainName string) ([]model.Token, error) {
 	return tokens, nil
 }
 
-func GetTransactionsByTokenAddress(address, chainName string) ([]bitquery.Transaction, error) {
+func GetTransactionsByTokenAddress(address string, chain model.Chain) ([]bitquery.Transaction, error) {
 	query := `
 		query ($baseCurrency: String!) {
 			ethereum(network: CHAIN_NAME) {
@@ -278,7 +269,7 @@ func GetTransactionsByTokenAddress(address, chainName string) ([]bitquery.Transa
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.BitqueryName,
 	)
 
 	vars := make(map[string]interface{})
@@ -300,7 +291,15 @@ func GetTransactionsByTokenAddress(address, chainName string) ([]bitquery.Transa
 	return dexTrades, nil
 }
 
-func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chainName string) (*model.TokenInfo, error) {
+func GetDaySummaryByTokenAddress(baseTokenAddress, sinceRFC3339 string, chain model.Chain) (*model.TokenInfo, error) {
+	quoteTokenInfo, err := GetTokenInfo(chain.NativeToken.Address, chain.USDToken.Address, chain)
+	if err != nil {
+		return nil, err
+	}
+	usdMultiplier := quoteTokenInfo.CurrentPrice
+
+	fmt.Println(usdMultiplier)
+
 	query := `
 		query ($since: ISO8601DateTime, $baseCurrency: String!, $quoteCurrency: String!) {
 			ethereum(network: CHAIN_NAME) {
@@ -345,13 +344,13 @@ func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chai
 	query = strings.ReplaceAll(
 		query,
 		CHAIN_NAME,
-		chainName,
+		chain.BitqueryName,
 	)
 
 	vars := make(map[string]interface{})
 	vars["since"] = sinceRFC3339
-	vars["baseCurrency"] = baseCurrency
-	vars["quoteCurrency"] = quoteCurrency
+	vars["baseCurrency"] = baseTokenAddress
+	vars["quoteCurrency"] = chain.NativeToken.Address
 
 	resp, err := bitquery.Query(query, &vars)
 	if err != nil {
@@ -367,12 +366,6 @@ func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chai
 	daySummary := data["data"]["ethereum"].DaySummaries[0]
 	// overview := data["data"]["ethereum"].OverViews[0]
 
-	info, err := GetTokenPrice(baseCurrency, quoteCurrency, chainName)
-	if err != nil {
-		return nil, err
-	}
-	usdMultiplier := info.CurrentPrice
-
 	openPrice, err := strconv.ParseFloat(daySummary.OpenPrice, 64)
 	if err != nil {
 		return nil, err
@@ -382,6 +375,8 @@ func GetTokenDaySummaryByAddress(baseCurrency, quoteCurrency, sinceRFC3339, chai
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(daySummary)
 
 	tokenInfo := model.NewTokenInfo(
 		daySummary.QuotePrice,

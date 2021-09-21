@@ -4,8 +4,8 @@ type Token struct {
 	Name      string `json:"name"`
 	Address   string `json:"address"`
 	Symbol    string `json:"symbol"`
-	TokenType string `json:"token_type"`
-	Network   string `json:"network"`
+	TokenType string `json:"token_type,omitempty"`
+	Network   string `json:"network,omitempty"`
 }
 
 func NewToken(name, address, symbol, tokenType, network string) *Token {
